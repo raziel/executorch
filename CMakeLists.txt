@@ -6,8 +6,17 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(EXECUTORCH_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
+# Executorch project
+project(Executorch
+    DESCRIPTION "Simple and portable executor of PyTorch programs"
+    VERSION 1.0.1)
+
+# Build flatbuffers
 # Because of OSX: https://github.com/google/flatbuffers/pull/6990/files
 set(FLATBUFFERS_OSX_BUILD_UNIVERSAL OFF CACHE BOOL "for OSX build")
 add_subdirectory(flatbuffers EXCLUDE_FROM_ALL)
@@ -15,14 +24,43 @@ add_subdirectory(flatbuffers EXCLUDE_FROM_ALL)
 
 target_link_libraries(
   flatbuffers
-  )
+)
+
+# Generate schema.
 
 add_custom_command(
   OUTPUT schema_generated.h
   COMMAND flatc --cpp "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   DEPENDS "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   WORKING_DIRECTORY "${EXECUTORCH_SOURCE_DIR}/schema"
-  )
-add_custom_target(cpp_binding ALL
+)
+add_custom_target(schema_header ALL
   DEPENDS schema_generated.h
-  )
+)
+
+# Create library
+include_directories("flatbuffers/include")
+add_library(executorch SHARED
+    executor.cc
+)
+add_dependencies(executorch schema_header)
+set_target_properties(executorch PROPERTIES
+    OUTPUT_NAME executorch
+    VERSION ${PROJECT_VERSION}
+    SOVERSION 1)
+configure_file(executorch.pc.in executorch.pc @ONLY)
+
+# Include directories.
+set(EXECUTORCH_INCLUDE_DIRS
+  "${EXECUTORCH_SOURCE_DIR}"
+  "${EXECUTORCH_SOURCE_DIR}/schema"
+)
+target_include_directories(executorch
+  PUBLIC
+    ${EXECUTORCH_INCLUDE_DIRS}
+)
+install(TARGETS executorch
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_BINARY_DIR}/executorch.pc
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
