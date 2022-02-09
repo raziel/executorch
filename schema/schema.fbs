@@ -1,0 +1,13 @@
+namespace executorch;
+
+// Identifier of a valid executor schema.
+file_identifier "ET01";
+// Extension of written files.
+file_extension "extorch";
+
+table Program {
+  // Schema version.
+  version:uint;
+}
+
+root_type Program;
