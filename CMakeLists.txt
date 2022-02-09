@@ -41,7 +41,7 @@ add_custom_target(schema_header ALL
 # Create library
 include_directories("flatbuffers/include")
 add_library(executorch SHARED
-    executor.cc
+    executor.cpp
 )
 add_dependencies(executorch schema_header)
 set_target_properties(executorch PROPERTIES
