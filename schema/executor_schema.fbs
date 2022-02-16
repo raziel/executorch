@@ -1,0 +1,84 @@
+namespace executorch;
+
+// Identifier of a valid executor schema.
+file_identifier "ET01";
+// Extension of written files.
+file_extension "extorch";
+
+// Table of raw data buffers, used for constant Values (e.g. like 
+// weight tensors), who reference it by index.
+// The alignment accommodates mmap-friendly data structures.
+table Buffer {
+  data:[ubyte] (force_align: 16);
+}
+
+table Kernel {
+  // Index into the operator_codes array. Using an integer here avoids
+  // complicate map lookups.
+  opcode_index:uint;
+
+  // Arguments to the operation (both in and out).
+  arguments:[int];
+}
+
+// A sequence of blocking kernels to be executed in order.
+table Chain {
+  // Indices of the tensors that are (non-static) inputs into this Chain.
+  inputs:[int];
+
+  // Indices of the tensors that are outputs out of this Chain.
+  outputs:[int];
+
+  // List of (blocking) kernels to be executed in order.
+  // TODO: async kernel abstraction?
+  kernels:[Kernel];
+}
+
+// Abstraction for program values. How does this correspond to IValue and
+// Tensor PyTorch types?
+table Value {
+  // Value type.
+  // type:DType;
+
+  // An index in the program's buffers list, or 0 for non-constant values that
+  // instead must be allocated upon program loading.
+  //
+  // Buffer contract is:
+  // * Little-endian.
+  buffer:uint;
+}
+
+table ExecutionPlan {
+  // A list of all values used in this execution plan.
+  values:[Value];
+
+  // Indices to the 'values' that are inputs to this exekcution plan.
+  // This list contains only the non-constant tensors (i.e. not part of
+  // the saved program).
+  inputs:[int];
+
+  // Indices to the 'values' that are outputs of this execution plan.
+  // This signals a lifespan that goes beyond the execution.
+  outputs:[int];
+
+  // List of Chains of kernels.
+  chains:[Chain];
+
+  // Async? part of the chain?
+}
+
+table Program {
+  // Schema version.
+  version:uint;
+
+  // Separate it in case we want to allow to have more than one way
+  // to execute the same program, for portability across devices.
+  execution_plan:[ExecutionPlan];
+
+  // Buffers of the model.
+  // Note the 0th entry of this array must be an empty buffer (sentinel) to be
+  // used by writable (non-constant) Values.
+  buffers:[Buffer];
+}
+
+root_type Program;
