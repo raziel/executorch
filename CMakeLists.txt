@@ -64,3 +64,7 @@ install(TARGETS executorch
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${CMAKE_BINARY_DIR}/executorch.pc
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+
+add_subdirectory(${EXECUTORCH_SOURCE_DIR}/test ${CMAKE_BINARY_DIR}/test)
+
+add_subdirectory(${EXECUTORCH_SOURCE_DIR}/googletest)
