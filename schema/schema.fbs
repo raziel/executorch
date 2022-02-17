@@ -78,6 +78,7 @@ table BoolList {
   items:[bool];
 }
 
+// Subset of IValue types of full PyTorch
 union ValueUnion {
   Int,
   Bool,
