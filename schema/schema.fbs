@@ -37,18 +37,62 @@ table Chain {
   kernels:[Kernel];
 }
 
+table Tensor {
+  // The tensor format should be compatible to existing PyTorch tensor format
+  storage_location_index:uint;
+  // enum ScalarType
+  scalar_type:byte;
+  storage_offset:int;
+  sizes:[int];
+  strides:[int];
+  requires_grad:bool;
+
+  // only set for quantized tensors
+  quantized_schema:QuantizedSchema;
+}
+
+// Reason for basic struct: union value type can only be table/struct/string
+struct Int {
+  int_val:long;
+}
+
+struct Bool {
+  bool_val:bool;
+}
+
+struct Double{
+  double_val:double;
+}
+
+table IntList {
+  items:[long];
+  // Q: Would it need to be RW like input/output/intermediate?
+  // If so, do we need to assign 0 buffer offset, and include in memory planning?
+}
+
+table DoubleList {
+  items:[double];
+}
+
+table BoolList {
+  items:[bool];
+}
+
+union ValueUnion {
+  Int,
+  Bool,
+  Double,
+  Tensor,
+  IntList,
+  DoubleList,
+  BoolList,
+  // Device, // To verify
+}
+
 // Abstraction for program values.
 // TODO: How does this correspond to IValue and Tensor PyTorch types?
 table Value {
-  // Value type.
-  // type:DType;
-
-  // An index in the program's buffers list, or 0 for non-constant values that
-  // instead must be allocated upon program loading.
-  //
-  // Buffer contract is:
-  // * Little-endian.
-  buffer:uint;
+  val:ValueUnion;
 }
 
 table ExecutionPlan {
