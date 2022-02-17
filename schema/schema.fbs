@@ -13,20 +13,23 @@ table Buffer {
 }
 
 table Kernel {
-  // Index into the operator_codes array. Using an integer here avoids
-  // complicate map lookups.
-  opcode_index:uint;
+  // Operator registry and lookup is uniquely identified by its name and
+  // overload name.
+  // TODO: consider more efficient way to represent this.
+  name:string;
+  overload:string;
 
-  // Arguments to the operation (both in and out).
-  arguments:[int];
+  // Indexes to the (values) required by the operation (in and out).
+  in_args:[int];
+  out_args:[int];
 }
 
 // A sequence of blocking kernels to be executed in order.
 table Chain {
-  // Indices of the tensors that are (non-static) inputs into this Chain.
+  // Indices of the values that are (non-static) inputs into this Chain.
   inputs:[int];
 
-  // Indices of the tensors that are outputs out of this Chain.
+  // Indices of the values that are outputs out of this Chain.
   outputs:[int];
 
   // List of (blocking) kernels to be executed in order.
@@ -34,8 +37,8 @@ table Chain {
   kernels:[Kernel];
 }
 
-// Abstraction for program values. How does this correspond to IValue and
-// Tensor PyTorch types?
+// Abstraction for program values.
+// TODO: How does this correspond to IValue and Tensor PyTorch types?
 table Value {
   // Value type.
   // type:DType;
@@ -52,7 +55,7 @@ table ExecutionPlan {
   // A list of all values used in this execution plan.
   values:[Value];
 
-  // Indices to the 'values' that are inputs to this exekcution plan.
+  // Indices to the 'values' that are inputs to this execution plan.
   // This list contains only the non-constant tensors (i.e. not part of
   // the saved program).
   inputs:[int];
