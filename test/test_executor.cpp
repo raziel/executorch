@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <core/tensor.h>
+#include <core/value.h>
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
@@ -11,7 +12,7 @@ int main(int argc, char* argv[]) {
 // Tests go in torch::jit
 namespace torch {
 namespace executor {
-TEST(ExecutorTest, Simple) {
+TEST(ExecutorTest, Tensor) {
   Tensor a;
   a.type = ScalarType::Int;
   a.dim = 2;
@@ -27,5 +28,20 @@ TEST(ExecutorTest, Simple) {
     }
   }
 }
+
+TEST(ExecutorTest, Value) {
+  Tensor a;
+  a.type = ScalarType::Int;
+  a.dim = 2;
+  a.sizes = new int[a.dim]{2, 2};
+  int a_data[4]{1, 2, 3, 4};
+  a.data = a_data;
+  a.nbytes = 2 * 2 * sizeof(int);
+
+  Value v(&a);
+  ASSERT_TRUE(v.isTensor());
+  ASSERT_EQ(v.toTensor()->nbytes, 16);
+}
+
 } // namespace executor
 } // namespace torch
