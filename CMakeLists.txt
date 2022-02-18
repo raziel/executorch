@@ -54,6 +54,7 @@ configure_file(executorch.pc.in executorch.pc @ONLY)
 set(EXECUTORCH_INCLUDE_DIRS
   "${EXECUTORCH_SOURCE_DIR}"
   "${EXECUTORCH_SOURCE_DIR}/schema"
+  "${EXECUTORCH_SOURCE_DIR}/core"
 )
 target_include_directories(executorch
   PUBLIC

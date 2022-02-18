@@ -37,6 +37,15 @@ table Chain {
   kernels:[Kernel];
 }
 
+table QuantizedSchema {
+  qscheme:byte;
+  scale:double;
+  zero_point:int;
+  scales:Tensor;
+  zero_points:Tensor;
+  axis:int;
+}
+
 table Tensor {
   // The tensor format should be compatible to existing PyTorch tensor format
   storage_location_index:uint;
