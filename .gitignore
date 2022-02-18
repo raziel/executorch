@@ -38,3 +38,7 @@ Makefile
 *.exe
 *.out
 *.app
+
+# Clion related
+.idea/
+cmake-build*
