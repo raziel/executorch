@@ -12,12 +12,17 @@ table Buffer {
   data:[ubyte] (force_align: 16);
 }
 
-table Kernel {
+table Operator {
   // Operator registry and lookup is uniquely identified by its name and
   // overload name.
   // TODO: consider more efficient way to represent this.
   name:string;
   overload:string;
+}
+
+table Kernel {
+  // Index to the operators table in the program.
+  op_index:int;
 
   // Indexes to the (values) required by the operation (in and out).
   in_args:[int];
