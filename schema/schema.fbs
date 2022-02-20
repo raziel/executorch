@@ -53,7 +53,8 @@ table QuantizedSchema {
 
 table Tensor {
   // The tensor format should be compatible to existing PyTorch tensor format
-  storage_location_index:uint;
+  // index to Program::buffers
+  buffer_index:uint;
   // enum ScalarType
   scalar_type:byte;
   storage_offset:int;
@@ -125,6 +126,9 @@ table ExecutionPlan {
 
   // List of Chains of kernels.
   chains:[Chain];
+
+  // Operators used in this execution plan
+  operators:[Operator];
 
   // Async? part of the chain?
 }

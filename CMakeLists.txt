@@ -30,7 +30,7 @@ target_link_libraries(
 
 add_custom_command(
   OUTPUT schema_generated.h
-  COMMAND flatc --cpp "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
+  COMMAND flatc --cpp --gen-mutable --scoped-enums "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   DEPENDS "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   WORKING_DIRECTORY "${EXECUTORCH_SOURCE_DIR}/schema"
 )
