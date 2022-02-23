@@ -13,11 +13,9 @@ int Executor::init_execution_plan(int index) {
 
 int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
   serialization_plan_ = s_plan;
-
-  // Load values
-  n_value_ = s_plan->values()->size();
-  values_ = new Value[n_value_];
-  for (int i = 0; i < n_value_; ++i) {
+  nvalue_ = s_plan->values()->size();
+  values_ = new Value[nvalue_];
+  for (int i = 0; i < nvalue_; ++i) {
     auto serialization_value = s_plan->values()->Get(i);
     switch (serialization_value->val_type()) {
     case executorch::ValueUnion::Int: {
@@ -47,9 +45,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       error_with_message("type not supported");
     }
   }
-
-  // Resolve operators
-  return 0;
+  
 }
 
 } // namespace executor

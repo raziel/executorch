@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <core/tensor.h>
 #include <core/value.h>
-#include <core/operator_registry.h>
 #include <schema_generated.h>
 #include <unordered_map>
 #include <executor.h>
@@ -267,7 +266,7 @@ TEST(ExecutorTest, Load) {
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();
-  ASSERT_EQ(plan.n_value_, 5);
+  ASSERT_EQ(plan.nvalue_, 5);
   Tensor* b = plan.values_[1].toTensor();
   ASSERT_EQ(b->type, ScalarType::Int);
   ASSERT_EQ(b->dim, 2);
@@ -275,31 +274,6 @@ TEST(ExecutorTest, Load) {
   ASSERT_EQ(d_ptr[3], 8);
 }
 
-TEST(ExecutorTest, Registry) {
-  auto func = getOpsFn("test::add");
-  ASSERT_TRUE(func);
 
-  Value* values = new Value[3];
-
-  auto a_sizes = new int[]{2, 2};
-  int a_data[4]{1, 2, 3, 4};
-  Tensor a(ScalarType::Int, 2, a_sizes, a_data);
-  values[0] = Value(&a);
-
-  auto b_sizes = new int[]{2, 2};
-  int b_data[4]{5, 6, 7, 8};
-  Tensor b(ScalarType::Int, 2, b_sizes, b_data);
-  values[1] = Value(&b);
-
-  auto c_sizes = new int[]{2, 2};
-  int c_data[4]{0, 0, 0, 0};
-  Tensor c(ScalarType::Int, 2, c_sizes, c_data);
-  values[2] = Value(&c);
-
-  func(values);
-  auto d_ptr = static_cast<int*>(c.data);
-  ASSERT_EQ(d_ptr[3], 12);
-
-}
 } // namespace executor
 } // namespace torch

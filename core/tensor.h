@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 
 namespace c10 {
 struct alignas(1) qint8 {
