@@ -1,20 +1,42 @@
-#include "flatbuffers/flatbuffers.h"
-#include "schema/schema_generated.h"
+#include <schema/schema_generated.h>
+#include <core/tensor.h>
+#include <core/value.h>
 
-namespace executorch {
+// namespace "executorch" is reserved for serialization
+namespace torch {
+namespace executor {
+
+// ExecutionPlan in executor (runtime) namespace.
+// Differences from executorch::ExecutionPlan in serialization:
+// It holds values with APIs that are compatible operator unboxing.
+// The data pointers of the values should be mapped to serialization buffer.
+// It holds function pointers of kernels, instead of operator names.
+// TODO: use static memory planning to create all executor related data
+struct ExecutionPlan {
+  int nvalue;
+  Value* values;
+
+  executorch::ExecutionPlan* serialization_plan_;
+};
 
 class Executor {
 
  public:
 
   // Executes a PyTorch executor program.
-  explicit Executor(const Program* program);
+  explicit Executor(const executorch::Program* program);
 
-  ~Executor();
+  int init_execution_plan(int index);
+
+  const ExecutionPlan& executionPlan() {return plan_;}
+
+  ~Executor() {}
 
  private:
 
-  const Program* program_;
+  const executorch::Program* program_;
+  ExecutionPlan plan_;
 };
 
-}  // namespace executorch
+} // namespace executor
+} // namespace torch
