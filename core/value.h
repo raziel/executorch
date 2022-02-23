@@ -1,15 +1,9 @@
 #pragma once
+#include <tensor.h>
+#include <error_message.h>
 
 namespace torch {
 namespace executor {
-
-// TODO: move to error handler
-void error_with_message(char* message) {
-  // A hacky error function before we have a good convention,
-  // better without exception.
-  printf("%s\n", message);
-  exit(EXIT_FAILURE);
-}
 
 struct IntList {
   int size;
