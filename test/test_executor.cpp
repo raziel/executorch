@@ -257,7 +257,7 @@ TEST(ExecutorTest, Serialize) {
   ASSERT_EQ(d_ptr[3], 8);
 }
 
-TEST(ExecutorTest, Executor) {
+TEST(ExecutorTest, Load) {
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
@@ -266,8 +266,8 @@ TEST(ExecutorTest, Executor) {
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();
-  ASSERT_EQ(plan.nvalue, 5);
-  Tensor* b = plan.values[1].toTensor();
+  ASSERT_EQ(plan.nvalue_, 5);
+  Tensor* b = plan.values_[1].toTensor();
   ASSERT_EQ(b->type, ScalarType::Int);
   ASSERT_EQ(b->dim, 2);
   auto d_ptr = static_cast<int*>(b->data);
