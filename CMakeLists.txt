@@ -16,6 +16,11 @@ project(Executorch
     DESCRIPTION "Simple and portable executor of PyTorch programs"
     VERSION 1.0.1)
 
+# Check submodule
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/flatbuffers/CMakeLists.txt" OR NOT EXISTS "${PROJECT_SOURCE_DIR}/googletest/CMakeLists.txt")
+  message(FATAL_ERROR "The submodules were not downloaded! Please run `git submodule update --init --recursive`.")
+endif()
+
 # Build flatbuffers
 # Because of OSX: https://github.com/google/flatbuffers/pull/6990/files
 set(FLATBUFFERS_OSX_BUILD_UNIVERSAL OFF CACHE BOOL "for OSX build")
