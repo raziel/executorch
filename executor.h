@@ -13,10 +13,13 @@ namespace executor {
 // It holds function pointers of kernels, instead of operator names.
 // TODO: use static memory planning to create all executor related data
 struct ExecutionPlan {
-  int nvalue;
-  Value* values;
-
+  explicit ExecutionPlan(const executorch::Program* program) : program_(program) {}
+  int init(executorch::ExecutionPlan* s_plan);
+  const executorch::Program* program_;
   executorch::ExecutionPlan* serialization_plan_;
+
+  int nvalue_;
+  Value* values_;
 };
 
 class Executor {
