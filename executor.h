@@ -18,8 +18,11 @@ struct ExecutionPlan {
   const executorch::Program* program_;
   executorch::ExecutionPlan* serialization_plan_;
 
-  int nvalue_;
+  int n_value_;
   Value* values_;
+
+  int n_operator;
+
 };
 
 class Executor {
