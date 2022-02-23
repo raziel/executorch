@@ -3,6 +3,7 @@
 #include <core/value.h>
 #include <schema_generated.h>
 #include <unordered_map>
+#include <executor.h>
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
@@ -255,5 +256,24 @@ TEST(ExecutorTest, Serialize) {
   auto d_ptr = static_cast<int*>(ptr);
   ASSERT_EQ(d_ptr[3], 8);
 }
+
+TEST(ExecutorTest, Executor) {
+  flatbuffers::FlatBufferBuilder fbb;
+  Serializer serializer;
+  auto buff = serializer.serializeModule(fbb);
+  auto program = executorch::GetProgram(buff.data());
+  Executor executor(program);
+  executor.init_execution_plan(0);
+
+  const auto& plan = executor.executionPlan();
+  ASSERT_EQ(plan.nvalue, 5);
+  Tensor* b = plan.values[1].toTensor();
+  ASSERT_EQ(b->type, ScalarType::Int);
+  ASSERT_EQ(b->dim, 2);
+  auto d_ptr = static_cast<int*>(b->data);
+  ASSERT_EQ(d_ptr[3], 8);
+}
+
+
 } // namespace executor
 } // namespace torch

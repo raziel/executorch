@@ -42,7 +42,7 @@ enum class Tag : uint32_t {
 #undef DEFINE_TAG
 };
 
-// Value is used to unify input/output types in a Node
+// Value is used to unify input/output types in a kernel
 // It's possible that an op argument is any of the types.
 // in native_functions.yaml, types are Tensor, Scalar, int[], float[], bool,
 // tag + union of payload
@@ -61,6 +61,8 @@ struct Value {
     BoolList* as_bool_list;
   };
   Payload payload;
+
+  Value() : tag(Tag::None) {}
 
   Value(int64_t i) : tag(Tag::Int) {
     payload.as_int = i;

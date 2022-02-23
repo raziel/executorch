@@ -55,7 +55,12 @@ static constexpr uint8_t scalarTypeItemSizes[NumScalarTypes] = {
 };
 
 
-// Tensor should be simple, but usable in operators
+// Tensor should be simple.
+// The requirement of tensor is to be sable in operators. It means
+// 1. It cannot be the serialization tensor where the methods are limited.
+//    However, the data ptr should be mapped from serialization, to avoid
+//    unnecessary memory copy.
+// 2. It should have all APIs used in operator kernels.
 // TODO: APIs common to at::Tensor
 struct Tensor {
   ScalarType type;
