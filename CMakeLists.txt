@@ -49,7 +49,7 @@ add_library(executorch SHARED
     executor.cpp
     ${EXECUTORCH_SOURCE_DIR}/core/error_message.cpp
     ${EXECUTORCH_SOURCE_DIR}/core/operator_registry.cpp
-    ${EXECUTORCH_SOURCE_DIR}/kernels/operator_kernels.cpp
+    ${EXECUTORCH_SOURCE_DIR}/kernels/demo_operator_kernels.cpp
 )
 add_dependencies(executorch schema_header)
 set_target_properties(executorch PROPERTIES

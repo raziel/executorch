@@ -15,10 +15,10 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
   serialization_plan_ = s_plan;
 
   // Load values
-  n_value_ = s_plan->values()->size();
+  n_value_ = serialization_plan_->values()->size();
   values_ = new Value[n_value_];
   for (int i = 0; i < n_value_; ++i) {
-    auto serialization_value = s_plan->values()->Get(i);
+    auto serialization_value = serialization_plan_->values()->Get(i);
     switch (serialization_value->val_type()) {
     case executorch::ValueUnion::Int: {
       values_[i].tag = Tag::Int;
@@ -49,6 +49,35 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
   }
 
   // Resolve operators
+  n_operator = serialization_plan_->operators()->size();
+  operators_ = new OpFunction[n_operator];
+  for (int i = 0; i < n_operator; ++i) {
+    std::string op_name(serialization_plan_->operators()->Get(i)->name()->str());
+    operators_[i] = getOpsFn(op_name);
+  }
+
+  // Load chains
+  auto chains = serialization_plan_->chains();
+  n_chains_ = chains->size();
+  chains_ = new Chain[n_chains_];
+  for (int i = 0; i < n_chains_; ++i) {
+    auto kernels = chains->Get(i)->kernels();
+    Chain* r_chain = &chains_[i]; // runtime chain
+    r_chain->n_kernels_ = kernels->size();
+    r_chain->kernels_ = new Kernel[r_chain->n_kernels_];
+    for (int j = 0; j < r_chain->n_kernels_; ++j) {
+      auto kernel = kernels->Get(j); // serialization kernel
+      Kernel* r_kernel = &r_chain->kernels_[j];
+      r_kernel->op_index_ = kernel->op_index();
+      auto args = kernel->args();
+      r_kernel->n_args_ = args->size();
+      r_kernel->args_ = new Value[r_kernel->n_args_];
+      for (int k = 0; k < r_kernel->n_args_; ++k) {
+        r_kernel->args_[k] = values_[args->Get(k)];
+      }
+    }
+  }
+
   return 0;
 }
 

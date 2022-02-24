@@ -25,8 +25,7 @@ table Kernel {
   op_index:int;
 
   // Indexes to the (values) required by the operation (in and out).
-  in_args:[int];
-  out_args:[int];
+  args:[int];
 }
 
 // A sequence of blocking kernels to be executed in order.

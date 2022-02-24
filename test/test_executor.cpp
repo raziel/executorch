@@ -139,11 +139,11 @@ struct Serializer {
         operator_vector;
     operator_vector.push_back(executorch::CreateOperator(
         fbb,
-        fbb.CreateSharedString("aten::mul"),
+        fbb.CreateSharedString("demo::mul"),
         fbb.CreateSharedString("")));
     operator_vector.push_back(executorch::CreateOperator(
         fbb,
-        fbb.CreateSharedString("aten::add"),
+        fbb.CreateSharedString("demo::add"),
         fbb.CreateSharedString("")));
 
     // 0: a,
@@ -154,22 +154,18 @@ struct Serializer {
 
     // Kernels
     std::vector<flatbuffers::Offset<executorch::Kernel>> kernel_vector;
-    std::vector<int> op0_inputs{0, 2};
-    std::vector<int> op0_outputs{4};
+    std::vector<int> op0_args{0, 2, 4};
     kernel_vector.push_back(executorch::CreateKernelDirect(
         fbb,
         0, /* op index, 0 for mul */
-        &op0_inputs,
-        &op0_outputs
+        &op0_args
         ));
 
-    std::vector<int> op1_inputs{4, 1};
-    std::vector<int> op1_outputs{3};
+    std::vector<int> op1_args{4, 1, 3};
     kernel_vector.push_back(executorch::CreateKernelDirect(
         fbb,
         1, /* op index, 0 for add */
-        &op1_inputs,
-        &op1_outputs
+        &op1_args
         ));
 
     std::vector<flatbuffers::Offset<executorch::Chain>> chain_vector;
@@ -244,7 +240,7 @@ TEST(ExecutorTest, Serialize) {
   ASSERT_EQ(program->execution_plan()->Length(), 1);
   auto operators = program->execution_plan()->Get(0)->operators();
   ASSERT_EQ(operators->Length(), 2);
-  ASSERT_EQ(operators->Get(1)->name()->str(), "aten::add");
+  ASSERT_EQ(operators->Get(1)->name()->str(), "demo::add");
 
   auto values = program->execution_plan()->Get(0)->values();
   ASSERT_EQ(values->Length(), 5);
@@ -273,10 +269,15 @@ TEST(ExecutorTest, Load) {
   ASSERT_EQ(b->dim, 2);
   auto d_ptr = static_cast<int*>(b->data);
   ASSERT_EQ(d_ptr[3], 8);
+
+  ASSERT_EQ(plan.n_chains_, 1);
+  ASSERT_EQ(plan.chains_[0].n_kernels_, 2);
+  ASSERT_EQ(plan.chains_[0].kernels_[0].n_args_, 3);
+  ASSERT_EQ(plan.chains_[0].kernels_[0].op_index_, 0);
 }
 
 TEST(ExecutorTest, Registry) {
-  auto func = getOpsFn("test::add");
+  auto func = getOpsFn("demo::add");
   ASSERT_TRUE(func);
 
   Value* values = new Value[3];
@@ -301,5 +302,6 @@ TEST(ExecutorTest, Registry) {
   ASSERT_EQ(d_ptr[3], 12);
 
 }
+
 } // namespace executor
 } // namespace torch
