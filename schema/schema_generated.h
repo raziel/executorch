@@ -323,8 +323,7 @@ struct Kernel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef KernelBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_OP_INDEX = 4,
-    VT_IN_ARGS = 6,
-    VT_OUT_ARGS = 8
+    VT_ARGS = 6
   };
   int32_t op_index() const {
     return GetField<int32_t>(VT_OP_INDEX, 0);
@@ -332,25 +331,17 @@ struct Kernel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_op_index(int32_t _op_index = 0) {
     return SetField<int32_t>(VT_OP_INDEX, _op_index, 0);
   }
-  const flatbuffers::Vector<int32_t> *in_args() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_IN_ARGS);
+  const flatbuffers::Vector<int32_t> *args() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ARGS);
   }
-  flatbuffers::Vector<int32_t> *mutable_in_args() {
-    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_IN_ARGS);
-  }
-  const flatbuffers::Vector<int32_t> *out_args() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_OUT_ARGS);
-  }
-  flatbuffers::Vector<int32_t> *mutable_out_args() {
-    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_OUT_ARGS);
+  flatbuffers::Vector<int32_t> *mutable_args() {
+    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_ARGS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_OP_INDEX, 4) &&
-           VerifyOffset(verifier, VT_IN_ARGS) &&
-           verifier.VerifyVector(in_args()) &&
-           VerifyOffset(verifier, VT_OUT_ARGS) &&
-           verifier.VerifyVector(out_args()) &&
+           VerifyOffset(verifier, VT_ARGS) &&
+           verifier.VerifyVector(args()) &&
            verifier.EndTable();
   }
 };
@@ -362,11 +353,8 @@ struct KernelBuilder {
   void add_op_index(int32_t op_index) {
     fbb_.AddElement<int32_t>(Kernel::VT_OP_INDEX, op_index, 0);
   }
-  void add_in_args(flatbuffers::Offset<flatbuffers::Vector<int32_t>> in_args) {
-    fbb_.AddOffset(Kernel::VT_IN_ARGS, in_args);
-  }
-  void add_out_args(flatbuffers::Offset<flatbuffers::Vector<int32_t>> out_args) {
-    fbb_.AddOffset(Kernel::VT_OUT_ARGS, out_args);
+  void add_args(flatbuffers::Offset<flatbuffers::Vector<int32_t>> args) {
+    fbb_.AddOffset(Kernel::VT_ARGS, args);
   }
   explicit KernelBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -382,11 +370,9 @@ struct KernelBuilder {
 inline flatbuffers::Offset<Kernel> CreateKernel(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t op_index = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> in_args = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> out_args = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> args = 0) {
   KernelBuilder builder_(_fbb);
-  builder_.add_out_args(out_args);
-  builder_.add_in_args(in_args);
+  builder_.add_args(args);
   builder_.add_op_index(op_index);
   return builder_.Finish();
 }
@@ -394,15 +380,12 @@ inline flatbuffers::Offset<Kernel> CreateKernel(
 inline flatbuffers::Offset<Kernel> CreateKernelDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t op_index = 0,
-    const std::vector<int32_t> *in_args = nullptr,
-    const std::vector<int32_t> *out_args = nullptr) {
-  auto in_args__ = in_args ? _fbb.CreateVector<int32_t>(*in_args) : 0;
-  auto out_args__ = out_args ? _fbb.CreateVector<int32_t>(*out_args) : 0;
+    const std::vector<int32_t> *args = nullptr) {
+  auto args__ = args ? _fbb.CreateVector<int32_t>(*args) : 0;
   return executorch::CreateKernel(
       _fbb,
       op_index,
-      in_args__,
-      out_args__);
+      args__);
 }
 
 struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
