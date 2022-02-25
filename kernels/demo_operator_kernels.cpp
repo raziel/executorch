@@ -39,7 +39,7 @@ void mul_kernel(Value* args) {
 
 static const std::vector<op_fn_register> op_reg{
     op_fn_register("demo::add", add_kernel),
-    op_fn_register("demo::mul", add_kernel)
+    op_fn_register("demo::mul", mul_kernel)
 };
 
 } // namespace executor

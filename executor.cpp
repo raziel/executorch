@@ -81,5 +81,19 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
   return 0;
 }
 
+int ExecutionPlan::execute() const {
+  // V0: execute chains sequentially.
+  // TODO: execute them in patterns based on (possible) control flow, delegate or async.
+  // chain loo;
+  for (int i = 0; i < n_chains_; ++i) {
+    Chain* chain = &chains_[i];
+    // kernel loop
+    for (int j = 0; j < chain->n_kernels_; ++j) {
+      Kernel* kernel = &chain->kernels_[j];
+      operators_[kernel->op_index_](kernel->args_);
+    }
+  }
+  return 0;
+}
 } // namespace executor
 } // namespace torch

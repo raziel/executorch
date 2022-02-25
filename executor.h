@@ -37,6 +37,7 @@ struct Chain {
 struct ExecutionPlan {
   explicit ExecutionPlan(const executorch::Program* program) : program_(program) {}
   int init(executorch::ExecutionPlan* s_plan);
+  int execute() const;
   const executorch::Program* program_;
   executorch::ExecutionPlan* serialization_plan_;
 
