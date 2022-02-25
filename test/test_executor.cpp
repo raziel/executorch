@@ -36,7 +36,7 @@ struct Serializer {
       }
     }
 
-    std::vector<int> sizes{tensor->sizes[0], tensor->sizes[0] + tensor->dim};
+    std::vector<int> sizes{&tensor->sizes[0], &tensor->sizes[0] + tensor->dim};
 
     return executorch::CreateTensorDirect(
         fbb,
@@ -74,7 +74,7 @@ struct Serializer {
 
   void serializeValues(flatbuffers::FlatBufferBuilder& fbb, const std::vector<Value>& values) {
     for (const auto& v : values) {
-      auto index = storeValueAndGetIndex(fbb, v);
+      storeValueAndGetIndex(fbb, v);
     }
 
     // store buffers
@@ -132,6 +132,7 @@ struct Serializer {
     values.emplace_back(&y);
     values.emplace_back(&z);
 
+    int debugint = values[0].payload.as_tensor->sizes[0];
     serializeValues(fbb, values);
 
     // operators
@@ -247,6 +248,7 @@ TEST(ExecutorTest, Serialize) {
   auto b = values->Get(1)->val_as_Tensor();
   ASSERT_EQ(b->sizes()->Length(), 2);
   ASSERT_EQ(b->sizes()->Get(0), 2);
+  ASSERT_EQ(b->sizes()->Get(1), 2);
 
   auto buffer = program->buffers()->GetMutableObject(b->buffer_index());
   void* ptr = static_cast<void*>(buffer->mutable_data()->data());
@@ -300,7 +302,38 @@ TEST(ExecutorTest, Registry) {
   func(values);
   auto d_ptr = static_cast<int*>(c.data);
   ASSERT_EQ(d_ptr[3], 12);
+}
 
+TEST(ExecutorTest, Execute) {
+  flatbuffers::FlatBufferBuilder fbb;
+  Serializer serializer;
+  auto buff = serializer.serializeModule(fbb);
+  auto program = executorch::GetProgram(buff.data());
+  Executor executor(program);
+  executor.init_execution_plan(0);
+
+  const auto& plan = executor.executionPlan();
+
+  // Prepare for inputs
+  int input_index = plan.serialization_plan_->inputs()->Get(0);
+  auto input = plan.values_[input_index];
+  auto input_t = input.toTensor();
+  auto data_input = static_cast<int*>(input_t->data);
+  for (int i = 0; i < 4; ++i) {
+    data_input[i] = 1;
+  }
+
+  plan.execute();
+
+  // Read output
+  int output_index = plan.serialization_plan_->outputs()->Get(0);
+  auto output = plan.values_[output_index];
+  auto output_t = output.toTensor();
+  auto data_output = static_cast<int*>(output_t->data);
+  ASSERT_EQ(data_output[0], 6);
+  ASSERT_EQ(data_output[1], 8);
+  ASSERT_EQ(data_output[2], 10);
+  ASSERT_EQ(data_output[3], 12);
 }
 
 } // namespace executor
