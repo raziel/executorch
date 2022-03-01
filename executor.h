@@ -1,6 +1,6 @@
 #include <schema/schema_generated.h>
 #include <core/tensor.h>
-#include <core/value.h>
+#include <core/Evalue.h>
 #include <core/operator_registry.h>
 
 // namespace "executorch" is reserved for serialization
@@ -18,7 +18,7 @@ namespace executor {
 // one-time at loading stage.
 struct Kernel {
   int n_args_;
-  Value* args_;
+  EValue* args_;
   // Index to the op functor table
   int op_index_;
 };
@@ -30,8 +30,8 @@ struct Chain {
 
 // ExecutionPlan in executor (runtime) namespace.
 // Differences from executorch::ExecutionPlan in serialization:
-// It holds values with APIs that are compatible operator unboxing.
-// The data pointers of the values should be mapped to serialization buffer.
+// It holds Evalues with APIs that are compatible operator unboxing.
+// The data pointers of the Evalues should be mapped to serialization buffer.
 // It holds function pointers of kernels, instead of operator names.
 // TODO: use static memory planning to create all executor related data
 struct ExecutionPlan {
@@ -42,7 +42,7 @@ struct ExecutionPlan {
   executorch::ExecutionPlan* serialization_plan_;
 
   int n_value_;
-  Value* values_;
+  EValue* values_;
 
   int n_operator;
   OpFunction* operators_;

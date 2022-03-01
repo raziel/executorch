@@ -52,11 +52,6 @@ class ArrayRef final {
   /// The number of elements.
   size_type Length;
 
-  void debugCheckNullptrInvariant() {
-      //created ArrayRef with nullptr and non-zero length! c10::optional relies on this being illegal
-      assert(Data != nullptr || Length == 0);
-  }
-
  public:
   /// @name Constructors
   /// @{
@@ -71,13 +66,13 @@ class ArrayRef final {
   /// Construct an ArrayRef from a pointer and length.
   constexpr ArrayRef(const T* data, size_t length)
       : Data(data), Length(length) {
-    debugCheckNullptrInvariant();
+    assert(Data != nullptr || Length == 0);
   }
 
   /// Construct an ArrayRef from a range.
    ArrayRef(const T* begin, const T* end)
       : Data(begin), Length(end - begin) {
-    debugCheckNullptrInvariant();
+    assert(Data != nullptr || Length == 0);
   }
 
 
@@ -221,20 +216,6 @@ class ArrayRef final {
 
   /// @}
 };
-
-// Dont need this for production, convenient to have for debugging
-template <typename T>
-std::ostream& operator<<(std::ostream& out, ArrayRef<T> list) {
-  int i = 0;
-  out << "[";
-  for (auto e : list) {
-    if (i++ > 0)
-      out << ", ";
-    out << e;
-  }
-  out << "]";
-  return out;
-}
 
 /// @name ArrayRef Convenience constructors
 /// @{

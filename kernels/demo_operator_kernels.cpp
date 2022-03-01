@@ -25,7 +25,7 @@ void add_kernel(Tensor &a, Tensor &b, Tensor &c) {
 
 // Code-generated glue unbox wrapper
 // TODO: provide functions.yaml and the code-gen implementation
-void add_op(Value *args) {
+void add_op(EValue *args) {
   Tensor *a = args[0].toTensor();
   Tensor *b = args[1].toTensor();
   Tensor *c = args[2].toTensor();
@@ -45,7 +45,7 @@ void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
   }
 }
 
-void mul_op(Value *args) {
+void mul_op(EValue *args) {
   Tensor *a = args[0].toTensor();
   Tensor *b = args[1].toTensor();
   Tensor *c = args[2].toTensor();

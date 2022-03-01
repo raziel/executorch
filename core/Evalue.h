@@ -3,7 +3,7 @@
 #include <Scalar.h>
 #include <error_message.h>
 #include <ArrayRef.h>
-#include <value.h>  // for tag
+#include <Tag.h>
 
 namespace torch {
 namespace executor {
@@ -11,15 +11,23 @@ namespace executor {
 
 // Aggregate typing system similar to IValue only slimmed down with less functionality,
 // no dependencies on atomic, and fewer supported types to better suit embedded systems
-//TODO Macrofy this file
 struct EValue {
     union Payload {
+        // Scalar will be implicitly supported through the following 3 types
         int64_t as_int;
         double as_double;
         bool as_bool;
 
-        // List of Supported Types in value.h
-        void* as_raw_pointer;
+        // Raw pointer instead of intrusive_ptr to avoid atomic dependency
+        Tensor* as_tensor;
+        utils::ArrayRef<int64_t>* as_int_list;
+        utils::ArrayRef<double>* as_double_list;
+        utils::ArrayRef<bool>* as_bool_list;
+        utils::ArrayRef<Tensor>* as_tensor_list;
+
+        // TODO
+        // c10::optional equivalent
+        // ArraryRef<Scalar>* as_scalar_list;
 
         Payload() {}
         ~Payload() {}
@@ -97,7 +105,7 @@ struct EValue {
     // }
 
     EValue(Tensor* t) : tag(Tag::Tensor) {
-        payload.as_raw_pointer = t;
+        payload.as_tensor = t;
     }
 
     bool isTensor() const {
@@ -108,11 +116,11 @@ struct EValue {
         if (!isTensor()) {
             error_with_message("EValue is not a Tensor.");
         }
-        return static_cast<Tensor*>(payload.as_raw_pointer);
+        return payload.as_tensor;
     }
 
     EValue(utils::ArrayRef<int64_t>* i) : tag(Tag::ListInt) {
-        payload.as_raw_pointer = i;
+        payload.as_int_list = i;
     }
 
     bool isIntList() const {
@@ -123,11 +131,11 @@ struct EValue {
         if (!isIntList()) {
             error_with_message("EValue is not an Int List.");
         }
-        return static_cast<utils::ArrayRef<int64_t>*>(payload.as_raw_pointer);
+        return payload.as_int_list;
     }
 
     EValue(utils::ArrayRef<bool>* b) : tag(Tag::ListBool) {
-        payload.as_raw_pointer = b;
+        payload.as_bool_list = b;
     }
 
     bool isBoolList() const {
@@ -138,11 +146,11 @@ struct EValue {
         if (!isBoolList()) {
             error_with_message("EValue is not a Bool List.");
         }
-        return static_cast<utils::ArrayRef<bool>*>(payload.as_raw_pointer);
+        return payload.as_bool_list;
     }
 
     EValue(utils::ArrayRef<double>* d) : tag(Tag::ListDouble) {
-        payload.as_raw_pointer = d;
+        payload.as_double_list = d;
     }
 
      bool isDoubleList() const {
@@ -153,11 +161,11 @@ struct EValue {
         if (!isDoubleList()) {
             error_with_message("EValue is not a Double List.");
         }
-        return static_cast<utils::ArrayRef<double>*>(payload.as_raw_pointer);
+        return payload.as_double_list;
     }
 
     EValue(utils::ArrayRef<Tensor>* t) : tag(Tag::ListTensor) {
-        payload.as_raw_pointer = t;
+        payload.as_tensor_list = t;
     }
 
     bool isTensorList() const {
@@ -168,23 +176,23 @@ struct EValue {
         if (!isIntList()) {
             error_with_message("EValue is not a Tensor List.");
         }
-        return static_cast<utils::ArrayRef<Tensor>*>(payload.as_raw_pointer);
+        return payload.as_tensor_list;
     }
 
-    EValue(utils::ArrayRef<Scalar>* s) : tag(Tag::ListScalar) {
-        payload.as_raw_pointer = s;
-    }
+    // EValue(utils::ArrayRef<Scalar>* s) : tag(Tag::ListScalar) {
+    //     payload.as_scalar_list = s;
+    // }
 
-    bool isScalarList() const {
-        return tag == Tag::ListScalar;
-    }
+    // bool isScalarList() const {
+    //     return tag == Tag::ListScalar;
+    // }
 
-    utils::ArrayRef<Scalar>* toScalarList() const {
-        if (!isScalarList()) {
-            error_with_message("EValue is not a Scalar List.");
-        }
-        return static_cast<utils::ArrayRef<Scalar>*>(payload.as_raw_pointer);
-    }
+    // utils::ArrayRef<Scalar>* toScalarList() const {
+    //     if (!isScalarList()) {
+    //         error_with_message("EValue is not a Scalar List.");
+    //     }
+    //     return payload.as_scalar_list;
+    // }
 };
 
 } // namespace executor

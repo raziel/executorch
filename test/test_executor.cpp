@@ -23,8 +23,8 @@ namespace executor {
 struct Serializer {
   flatbuffers::Offset<executorch::Tensor> tensorToFB(
       flatbuffers::FlatBufferBuilder& fbb,
-      const Value& ivalue) {
-    auto tensor = ivalue.toTensor();
+      const EValue& value) {
+    auto tensor = value.toTensor();
     // If there's no data in that tensor, the buffer_index is 0
     int buffer_index = 0;
     if (tensor->data) {
@@ -52,30 +52,30 @@ struct Serializer {
         0);
   }
 
-  flatbuffers::Offset<executorch::Value> valueToFB(flatbuffers::FlatBufferBuilder& fbb, const Value& ivalue) {
+  flatbuffers::Offset<executorch::EValue> valueToFB(flatbuffers::FlatBufferBuilder& fbb, const EValue& value) {
     flatbuffers::Offset<void> offset = 0;
-    executorch::ValueUnion ivalue_type = executorch::ValueUnion::NONE;
-    if (ivalue.tag == Tag::Tensor) {
+    executorch::ValueUnion value_type = executorch::ValueUnion::NONE;
+    if (value.tag == Tag::Tensor) {
 
-      ivalue_type = executorch::ValueUnion::Tensor;
-      offset = tensorToFB(fbb, ivalue).Union();
+      value_type = executorch::ValueUnion::Tensor;
+      offset = tensorToFB(fbb, value).Union();
     } else {
       // TODO: Support other types.
       error_with_message("Type not supported yet.");
     }
-    return CreateValue(fbb, ivalue_type, offset);
+    return CreateEValue(fbb, value_type, offset);
   }
 
   uint32_t storeValueAndGetIndex(
       flatbuffers::FlatBufferBuilder& fbb,
-      const Value& ivalue) {
-    auto offset = valueToFB(fbb, ivalue);
+      const EValue& value) {
+    auto offset = valueToFB(fbb, value);
     uint32_t size = value_offsets_.size();
     value_offsets_.push_back(offset);
     return size;
   }
 
-  void serializeValues(flatbuffers::FlatBufferBuilder& fbb, const std::vector<Value>& values) {
+  void serializeValues(flatbuffers::FlatBufferBuilder& fbb, const std::vector<EValue>& values) {
     for (const auto& v : values) {
       storeValueAndGetIndex(fbb, v);
     }
@@ -110,7 +110,7 @@ struct Serializer {
     // TODO: Add other types like IntList or BoolList
     // Values: a, b, x, y and intermediate z (ax), all tensors
     // Constant tensors a and b have data.
-    std::vector<Value> values;
+    std::vector<EValue> values;
     auto a_sizes = new int[]{2, 2};
     int a_data[4]{1, 2, 3, 4};
     Tensor a(ScalarType::Int, 2, a_sizes, a_data);
@@ -135,7 +135,7 @@ struct Serializer {
     values.emplace_back(&y);
     values.emplace_back(&z);
 
-    int debugint = values[0].payload.as_tensor->sizes[0];
+    int debugint = values[0].toTensor()->sizes[0];
     serializeValues(fbb, values);
 
     // operators
@@ -205,7 +205,7 @@ struct Serializer {
   }
 
   int buffer_index_ = 0; // 0 is hard-coded for RW data
-  std::vector<flatbuffers::Offset<executorch::Value>> value_offsets_;
+  std::vector<flatbuffers::Offset<executorch::EValue>> value_offsets_;
   std::vector<flatbuffers::Offset<executorch::Buffer>>
       buffer_offsets_;
   std::unordered_map<const void*, uint32_t> memoized_storage_map_;
@@ -223,16 +223,6 @@ TEST(ExecutorTest, Tensor) {
       printf("a[%d, %d] = %d\n", i, j, data_p[2 * i + j]);
     }
   }
-}
-
-TEST(ExecutorTest, Value) {
-  auto sizes = new int[]{2, 2};
-  int data[4]{1, 2, 3, 4};
-  Tensor a(ScalarType::Int, 2, sizes, data);
-
-  Value v(&a);
-  ASSERT_TRUE(v.isTensor());
-  ASSERT_EQ(v.toTensor()->nbytes, 16);
 }
 
 TEST(ExecutorTest, EValue) {
@@ -295,22 +285,22 @@ TEST(ExecutorTest, Registry) {
   auto func = getOpsFn("demo::add");
   ASSERT_TRUE(func);
 
-  Value* values = new Value[3];
+  EValue* values = new EValue[3];
 
   auto a_sizes = new int[]{2, 2};
   int a_data[4]{1, 2, 3, 4};
   Tensor a(ScalarType::Int, 2, a_sizes, a_data);
-  values[0] = Value(&a);
+  values[0] = EValue(&a);
 
   auto b_sizes = new int[]{2, 2};
   int b_data[4]{5, 6, 7, 8};
   Tensor b(ScalarType::Int, 2, b_sizes, b_data);
-  values[1] = Value(&b);
+  values[1] = EValue(&b);
 
   auto c_sizes = new int[]{2, 2};
   int c_data[4]{0, 0, 0, 0};
   Tensor c(ScalarType::Int, 2, c_sizes, c_data);
-  values[2] = Value(&c);
+  values[2] = EValue(&c);
 
   func(values);
   auto d_ptr = static_cast<int*>(c.data);

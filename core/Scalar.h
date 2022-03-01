@@ -1,11 +1,10 @@
 #pragma once
 
 #include <error_message.h>
-#include <value.h>  // for tag
+#include <Tag.h>
 
 namespace torch {
 namespace executor {
-
 
 // WIP CLASS
 class Scalar {

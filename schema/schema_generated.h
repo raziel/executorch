@@ -41,8 +41,11 @@ struct DoubleListBuilder;
 struct BoolList;
 struct BoolListBuilder;
 
-struct Value;
-struct ValueBuilder;
+struct TensorList;
+struct TensorListBuilder;
+
+struct EValue;
+struct EValueBuilder;
 
 struct ExecutionPlan;
 struct ExecutionPlanBuilder;
@@ -59,11 +62,12 @@ enum class ValueUnion : uint8_t {
   IntList = 5,
   DoubleList = 6,
   BoolList = 7,
+  TensorList = 8,
   MIN = NONE,
-  MAX = BoolList
+  MAX = TensorList
 };
 
-inline const ValueUnion (&EnumValuesValueUnion())[8] {
+inline const ValueUnion (&EnumValuesValueUnion())[9] {
   static const ValueUnion values[] = {
     ValueUnion::NONE,
     ValueUnion::Int,
@@ -72,13 +76,14 @@ inline const ValueUnion (&EnumValuesValueUnion())[8] {
     ValueUnion::Tensor,
     ValueUnion::IntList,
     ValueUnion::DoubleList,
-    ValueUnion::BoolList
+    ValueUnion::BoolList,
+    ValueUnion::TensorList
   };
   return values;
 }
 
 inline const char * const *EnumNamesValueUnion() {
-  static const char * const names[9] = {
+  static const char * const names[10] = {
     "NONE",
     "Int",
     "Bool",
@@ -87,13 +92,14 @@ inline const char * const *EnumNamesValueUnion() {
     "IntList",
     "DoubleList",
     "BoolList",
+    "TensorList",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameValueUnion(ValueUnion e) {
-  if (flatbuffers::IsOutRange(e, ValueUnion::NONE, ValueUnion::BoolList)) return "";
+  if (flatbuffers::IsOutRange(e, ValueUnion::NONE, ValueUnion::TensorList)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesValueUnion()[index];
 }
@@ -128,6 +134,10 @@ template<> struct ValueUnionTraits<executorch::DoubleList> {
 
 template<> struct ValueUnionTraits<executorch::BoolList> {
   static const ValueUnion enum_value = ValueUnion::BoolList;
+};
+
+template<> struct ValueUnionTraits<executorch::TensorList> {
+  static const ValueUnion enum_value = ValueUnion::TensorList;
 };
 
 bool VerifyValueUnion(flatbuffers::Verifier &verifier, const void *obj, ValueUnion type);
@@ -897,8 +907,63 @@ inline flatbuffers::Offset<BoolList> CreateBoolListDirect(
       items__);
 }
 
-struct Value FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ValueBuilder Builder;
+struct TensorList FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TensorListBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ITEMS = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>> *items() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>> *>(VT_ITEMS);
+  }
+  flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>> *mutable_items() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>> *>(VT_ITEMS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ITEMS) &&
+           verifier.VerifyVector(items()) &&
+           verifier.VerifyVectorOfTables(items()) &&
+           verifier.EndTable();
+  }
+};
+
+struct TensorListBuilder {
+  typedef TensorList Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_items(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>>> items) {
+    fbb_.AddOffset(TensorList::VT_ITEMS, items);
+  }
+  explicit TensorListBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<TensorList> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TensorList>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TensorList> CreateTensorList(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Tensor>>> items = 0) {
+  TensorListBuilder builder_(_fbb);
+  builder_.add_items(items);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<TensorList> CreateTensorListDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<executorch::Tensor>> *items = nullptr) {
+  auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<executorch::Tensor>>(*items) : 0;
+  return executorch::CreateTensorList(
+      _fbb,
+      items__);
+}
+
+struct EValue FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef EValueBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VAL_TYPE = 4,
     VT_VAL = 6
@@ -931,6 +996,9 @@ struct Value FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const executorch::BoolList *val_as_BoolList() const {
     return val_type() == executorch::ValueUnion::BoolList ? static_cast<const executorch::BoolList *>(val()) : nullptr;
   }
+  const executorch::TensorList *val_as_TensorList() const {
+    return val_type() == executorch::ValueUnion::TensorList ? static_cast<const executorch::TensorList *>(val()) : nullptr;
+  }
   void *mutable_val() {
     return GetPointer<void *>(VT_VAL);
   }
@@ -943,60 +1011,64 @@ struct Value FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-template<> inline const executorch::Int *Value::val_as<executorch::Int>() const {
+template<> inline const executorch::Int *EValue::val_as<executorch::Int>() const {
   return val_as_Int();
 }
 
-template<> inline const executorch::Bool *Value::val_as<executorch::Bool>() const {
+template<> inline const executorch::Bool *EValue::val_as<executorch::Bool>() const {
   return val_as_Bool();
 }
 
-template<> inline const executorch::Double *Value::val_as<executorch::Double>() const {
+template<> inline const executorch::Double *EValue::val_as<executorch::Double>() const {
   return val_as_Double();
 }
 
-template<> inline const executorch::Tensor *Value::val_as<executorch::Tensor>() const {
+template<> inline const executorch::Tensor *EValue::val_as<executorch::Tensor>() const {
   return val_as_Tensor();
 }
 
-template<> inline const executorch::IntList *Value::val_as<executorch::IntList>() const {
+template<> inline const executorch::IntList *EValue::val_as<executorch::IntList>() const {
   return val_as_IntList();
 }
 
-template<> inline const executorch::DoubleList *Value::val_as<executorch::DoubleList>() const {
+template<> inline const executorch::DoubleList *EValue::val_as<executorch::DoubleList>() const {
   return val_as_DoubleList();
 }
 
-template<> inline const executorch::BoolList *Value::val_as<executorch::BoolList>() const {
+template<> inline const executorch::BoolList *EValue::val_as<executorch::BoolList>() const {
   return val_as_BoolList();
 }
 
-struct ValueBuilder {
-  typedef Value Table;
+template<> inline const executorch::TensorList *EValue::val_as<executorch::TensorList>() const {
+  return val_as_TensorList();
+}
+
+struct EValueBuilder {
+  typedef EValue Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_val_type(executorch::ValueUnion val_type) {
-    fbb_.AddElement<uint8_t>(Value::VT_VAL_TYPE, static_cast<uint8_t>(val_type), 0);
+    fbb_.AddElement<uint8_t>(EValue::VT_VAL_TYPE, static_cast<uint8_t>(val_type), 0);
   }
   void add_val(flatbuffers::Offset<void> val) {
-    fbb_.AddOffset(Value::VT_VAL, val);
+    fbb_.AddOffset(EValue::VT_VAL, val);
   }
-  explicit ValueBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit EValueBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<Value> Finish() {
+  flatbuffers::Offset<EValue> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Value>(end);
+    auto o = flatbuffers::Offset<EValue>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Value> CreateValue(
+inline flatbuffers::Offset<EValue> CreateEValue(
     flatbuffers::FlatBufferBuilder &_fbb,
     executorch::ValueUnion val_type = executorch::ValueUnion::NONE,
     flatbuffers::Offset<void> val = 0) {
-  ValueBuilder builder_(_fbb);
+  EValueBuilder builder_(_fbb);
   builder_.add_val(val);
   builder_.add_val_type(val_type);
   return builder_.Finish();
@@ -1011,11 +1083,11 @@ struct ExecutionPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CHAINS = 10,
     VT_OPERATORS = 12
   };
-  const flatbuffers::Vector<flatbuffers::Offset<executorch::Value>> *values() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::Value>> *>(VT_VALUES);
+  const flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>> *values() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>> *>(VT_VALUES);
   }
-  flatbuffers::Vector<flatbuffers::Offset<executorch::Value>> *mutable_values() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Value>> *>(VT_VALUES);
+  flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>> *mutable_values() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>> *>(VT_VALUES);
   }
   const flatbuffers::Vector<int32_t> *inputs() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUTS);
@@ -1064,7 +1136,7 @@ struct ExecutionPlanBuilder {
   typedef ExecutionPlan Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_values(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Value>>> values) {
+  void add_values(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>>> values) {
     fbb_.AddOffset(ExecutionPlan::VT_VALUES, values);
   }
   void add_inputs(flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs) {
@@ -1092,7 +1164,7 @@ struct ExecutionPlanBuilder {
 
 inline flatbuffers::Offset<ExecutionPlan> CreateExecutionPlan(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Value>>> values = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::EValue>>> values = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Chain>>> chains = 0,
@@ -1108,12 +1180,12 @@ inline flatbuffers::Offset<ExecutionPlan> CreateExecutionPlan(
 
 inline flatbuffers::Offset<ExecutionPlan> CreateExecutionPlanDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<executorch::Value>> *values = nullptr,
+    const std::vector<flatbuffers::Offset<executorch::EValue>> *values = nullptr,
     const std::vector<int32_t> *inputs = nullptr,
     const std::vector<int32_t> *outputs = nullptr,
     const std::vector<flatbuffers::Offset<executorch::Chain>> *chains = nullptr,
     const std::vector<flatbuffers::Offset<executorch::Operator>> *operators = nullptr) {
-  auto values__ = values ? _fbb.CreateVector<flatbuffers::Offset<executorch::Value>>(*values) : 0;
+  auto values__ = values ? _fbb.CreateVector<flatbuffers::Offset<executorch::EValue>>(*values) : 0;
   auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
   auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
   auto chains__ = chains ? _fbb.CreateVector<flatbuffers::Offset<executorch::Chain>>(*chains) : 0;
@@ -1243,6 +1315,10 @@ inline bool VerifyValueUnion(flatbuffers::Verifier &verifier, const void *obj, V
     }
     case ValueUnion::BoolList: {
       auto ptr = reinterpret_cast<const executorch::BoolList *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ValueUnion::TensorList: {
+      auto ptr = reinterpret_cast<const executorch::TensorList *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

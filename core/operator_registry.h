@@ -1,13 +1,13 @@
 #pragma once
 
-#include <value.h>
+#include <Evalue.h>
 #include <functional>
 #include <vector>
 
 namespace torch {
 namespace executor {
 
-using OpFunction = std::function<void(Value*)>;
+using OpFunction = std::function<void(EValue*)>;
 
 void registerOpsFunction(
     const std::string& name,

@@ -16,7 +16,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
 
   // Load values
   n_value_ = serialization_plan_->values()->size();
-  values_ = new Value[n_value_];
+  values_ = new EValue[n_value_];
   for (int i = 0; i < n_value_; ++i) {
     auto serialization_value = serialization_plan_->values()->Get(i);
     switch (serialization_value->val_type()) {
@@ -71,7 +71,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       r_kernel->op_index_ = kernel->op_index();
       auto args = kernel->args();
       r_kernel->n_args_ = args->size();
-      r_kernel->args_ = new Value[r_kernel->n_args_];
+      r_kernel->args_ = new EValue[r_kernel->n_args_];
       for (int k = 0; k < r_kernel->n_args_; ++k) {
         r_kernel->args_[k] = values_[args->Get(k)];
       }

@@ -92,6 +92,11 @@ table BoolList {
   items:[bool];
 }
 
+table TensorList {
+  items:[Tensor];
+}
+
+
 // Subset of IValue types of full PyTorch
 union ValueUnion {
   Int,
@@ -101,25 +106,25 @@ union ValueUnion {
   IntList,
   DoubleList,
   BoolList,
-  // Device, // To verify
+  TensorList,
 }
 
 // Abstraction for program values.
 // TODO: How does this correspond to IValue and Tensor PyTorch types?
-table Value {
+table EValue {
   val:ValueUnion;
 }
 
 table ExecutionPlan {
   // A list of all values used in this execution plan.
-  values:[Value];
+  values:[EValue];
 
-  // Indices to the 'values' that are inputs to this execution plan.
+  // Indices to the 'Evalues' that are inputs to this execution plan.
   // This list contains only the non-constant tensors (i.e. not part of
   // the saved program).
   inputs:[int];
 
-  // Indices to the 'values' that are outputs of this execution plan.
+  // Indices to the 'Evalues' that are outputs of this execution plan.
   // This signals a lifespan that goes beyond the execution.
   outputs:[int];
 
