@@ -36,20 +36,29 @@ class ExecutionPlan():
         self.chains = chains
         self.operators = operators
 
-# TODO: will need to deduplicate op table and values
 def compile_to_exec_plan(graph):
     ops = []
-    arguments = []
     kernels = []
     node_to_idx = {}
+    outputs = []
+    nodes_in_chain = set()
     def get_index(node):
         if node not in node_to_idx:
             node_to_idx[node] = get_index.i
             get_index.i += 1
         return node_to_idx[node]
     get_index.i = 0
+
     for ix, node in enumerate(graph.nodes):
         args_for_kernel = []
+        if node.op == "output":
+            return_args = node.args[0]
+            if not isinstance(return_args, List):
+                outputs.append((return_args, get_index(return_args)))
+            else:
+                for arg in return_args:
+                    outputs.append((arg, get_index(arg)))
+
         if node.op == "call_function":
             # TODO Hacky way to extract op name
             op_name = node.target.__name__
@@ -60,25 +69,40 @@ def compile_to_exec_plan(graph):
             ops.append(operator)
 
             for arg in node.args:
-                arguments.append(arg)
                 args_for_kernel.append(get_index(arg))
-                print("Arg {} with index {}".format(arg, get_index.i))
 
             for kwarg in node.kwargs:
-                arguments.append(kawarg)
                 kwarg_ix = len(arguments)
                 args_for_kernel.append(kwarg_ix)
-                print("Kwarg {} with index {}".format(kwarg, get_index.i))
 
             kernel = Kernel(op_index=len(ops), args=args_for_kernel)
             kernels.append(kernel)
+            nodes_in_chain.add(node)
+        # TODO Since we are developing on actual FX graph, we should
+        # not error out in cases we don't support yet
         else:
             # There shouldn't be any other type of FX op
             continue
 
-    # TODO this is probably not true.
-    chain = Chain(kernels=kernels, inputs=[v for _, v in node_to_idx.items()], outputs=[v for _, v in node_to_idx.items()])
-    return chain, ops, arguments
+    arguments_node = [k for k, v in node_to_idx.items()]
+    arguments_index = [v for k, v in node_to_idx.items()]
+
+    # To make lookup easier
+    output_nodes = set()
+    for output_node, output_idx in outputs:
+        output_nodes.add(output_node)
+
+    # Chain inputs are:
+    #   1. not output
+    #   2. not a node in chain
+    chain_inputs = []
+    for node in node_to_idx:
+        if (node in nodes_in_chain) or (node in output_nodes):
+            continue
+        chain_inputs.append(node_to_idx[node])
+
+    chain = Chain(kernels=kernels, inputs=chain_inputs, outputs=[v for k, v in outputs])
+    return chain, ops, arguments_node
 
 if __name__ == "__main__":
 
@@ -87,7 +111,10 @@ if __name__ == "__main__":
             super().__init__()
 
         def forward(self, x: torch.Tensor):
-            return torch.add(x, torch.Tensor([5.0])), torch.add(x, torch.Tensor([6.0]))
+            a = torch.add(x, torch.Tensor([5.0]))
+            b = torch.add(torch.Tensor([2.0]), torch.Tensor([3.0]))
+            c = torch.add(x + b, torch.Tensor([6.0]))
+            return c
 
     module = MyModule()
 
@@ -97,4 +124,6 @@ if __name__ == "__main__":
 
     print(symbolic_traced.graph)
     chain, ops, arguments = compile_to_exec_plan(symbolic_traced.graph)
-    print(chain)
+    print(chain) # chain of Kernels
+    print(ops) # op look up table
+    print(arguments) # value look up table
