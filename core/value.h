@@ -23,12 +23,15 @@ struct BoolList {
 #define TORCH_FORALL_TAGS(_) \
   _(None)                    \
   _(Tensor)                  \
+  _(Scalar)                  \
   _(Double)                  \
   _(Int)                     \
   _(Bool)                    \
-  _(ListDouble)                  \
-  _(ListInt)                     \
-  _(ListBool)
+  _(ListBool)              \
+  _(ListDouble)              \
+  _(ListInt)                 \
+  _(ListTensor)              \
+  _(ListScalar)              \
 
 enum class Tag : uint32_t {
 #define DEFINE_TAG(x) x,
@@ -96,4 +99,3 @@ struct ValueList {
 
 } // namespace executor
 } // namespace torch
-
