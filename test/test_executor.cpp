@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <core/tensor.h>
 #include <core/ArrayRef.h>
-#include <core/value.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>
 #include <core/operator_registry.h>
@@ -218,11 +217,10 @@ TEST(ExecutorTest, Tensor) {
   Tensor a(ScalarType::Int, 2, sizes, data);
 
   auto data_p = static_cast<int*>(a.data);
-  for (int i = 0; i < a.sizes[0]; ++i) {
-    for (int j = 0; j < a.sizes[1]; ++j) {
-      printf("a[%d, %d] = %d\n", i, j, data_p[2 * i + j]);
-    }
-  }
+  ASSERT_EQ(data_p[0], 1);
+  ASSERT_EQ(data_p[1], 2);
+  ASSERT_EQ(data_p[2], 3);
+  ASSERT_EQ(data_p[3], 4);
 }
 
 TEST(ExecutorTest, EValue) {
@@ -313,7 +311,7 @@ TEST(ExecutorTest, ArrayRef) {
   int64_t* bar = new int64_t[1];
   size_t length = 1;
   utils::IntArrayRef bap(bar, length);
-  ASSERT_NE(foo[0], 1);
+  ASSERT_EQ(foo[0], 1);
   ASSERT_EQ(sizeof(foo), 16);
 }
 
