@@ -16,7 +16,7 @@ namespace executor {
 
 
 #define FORALL_OPCODES(_)                                                      \
-  _(CALL_KERNEL, "K") /* invoke kernel X */                                           \
+  _(CALL_KERNEL, "K") /* invoke kernel K */                                           \
   _(JF, "P") /* pop the top of the stack, if false, branch to P */
 
 enum OpCode : uint8_t {
@@ -27,11 +27,10 @@ enum OpCode : uint8_t {
 
 struct Instruction {
   OpCode op;
-  uint8_t N;
   int32_t X;
-  // TODO: check for overflow
+  uint8_t N;
   Instruction(OpCode op, int32_t X, uint8_t N)
-      : op(op), unused(0), N(N), X(X) {}
+      : op(op), N(N), X(X) {}
 };
 } // namespace jit
 } // namespace torch
