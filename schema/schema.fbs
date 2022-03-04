@@ -12,35 +12,6 @@ table Buffer {
   data:[ubyte] (force_align: 16);
 }
 
-table Operator {
-  // Operator registry and lookup is uniquely identified by its name and
-  // overload name.
-  // TODO: consider more efficient way to represent this.
-  name:string;
-  overload:string;
-}
-
-table Kernel {
-  // Index to the operators table in the program.
-  op_index:int;
-
-  // Indexes to the (values) required by the operation (in and out).
-  args:[int];
-}
-
-// A sequence of blocking kernels to be executed in order.
-table Chain {
-  // Indices of the values that are (non-static) inputs into this Chain.
-  inputs:[int];
-
-  // Indices of the values that are outputs out of this Chain.
-  outputs:[int];
-
-  // List of (blocking) kernels to be executed in order.
-  // TODO: async kernel abstraction?
-  kernels:[Kernel];
-}
-
 table QuantizedSchema {
   qscheme:byte;
   scale:double;
@@ -113,6 +84,35 @@ union ValueUnion {
 // TODO: How does this correspond to IValue and Tensor PyTorch types?
 table EValue {
   val:ValueUnion;
+}
+
+table Operator {
+  // Operator registry and lookup is uniquely identified by its name and
+  // overload name.
+  // TODO: consider more efficient way to represent this.
+  name:string;
+  overload:string;
+}
+
+table Kernel {
+  // Index to the operators table in the program.
+  op_index:int;
+
+  // Indexes to the (values) required by the operation (in and out).
+  args:[int];
+}
+
+// A sequence of blocking kernels to be executed in order.
+table Chain {
+  // Indices of the values that are (non-static) inputs into this Chain.
+  inputs:[int];
+
+  // Indices of the values that are outputs out of this Chain.
+  outputs:[int];
+
+  // List of (blocking) kernels to be executed in order.
+  // TODO: async kernel abstraction?
+  kernels:[Kernel];
 }
 
 table ExecutionPlan {

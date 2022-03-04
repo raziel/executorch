@@ -311,8 +311,7 @@ TEST(ExecutorTest, ArrayRef) {
   int64_t* bar = new int64_t[1];
   size_t length = 1;
   utils::IntArrayRef bap(bar, length);
-  ASSERT_EQ(foo[0], 1);
-  ASSERT_EQ(sizeof(foo), 16);
+  ASSERT_EQ(sizeof(bap), 16);
 }
 
 TEST(ExecutorTest, Execute) {
