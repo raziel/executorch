@@ -117,6 +117,9 @@ table Chain {
   // Indices of the values that are outputs out of this Chain.
   outputs:[int];
 
+  // Kernel table for CALL_KERNEL to call.
+  kernels:[Kernel];
+
   // List of instructions to be executed in order.
   instructions:[Instruction];
 }

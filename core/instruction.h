@@ -30,7 +30,7 @@ struct Instruction {
   int32_t X;
   uint8_t N;
   Instruction(OpCode op, int32_t X, uint8_t N)
-      : op(op), N(N), X(X) {}
+      : op(op), X(X), N(N)  {}
 };
 } // namespace jit
 } // namespace torch
