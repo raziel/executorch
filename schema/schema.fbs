@@ -102,6 +102,13 @@ table Kernel {
   args:[int];
 }
 
+struct Instruction {
+  // Should op be enum instead?
+  op:byte; // 8-bit
+  x:int; // 32-bit, used as table index or PC it jumps to
+  n:byte; // Since it's alined to 16-bit, it's used for pading. Could be used for extention in future.
+}
+
 // A sequence of blocking kernels to be executed in order.
 table Chain {
   // Indices of the values that are (non-static) inputs into this Chain.
@@ -110,9 +117,11 @@ table Chain {
   // Indices of the values that are outputs out of this Chain.
   outputs:[int];
 
-  // List of (blocking) kernels to be executed in order.
-  // TODO: async kernel abstraction?
+  // Kernel table for CALL_KERNEL to call.
   kernels:[Kernel];
+
+  // List of instructions to be executed in order.
+  instructions:[Instruction];
 }
 
 table ExecutionPlan {

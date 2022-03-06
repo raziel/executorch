@@ -3,6 +3,7 @@
 #include <core/ArrayRef.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>
+#include <core/instruction.h>
 #include <core/operator_registry.h>
 #include <schema_generated.h>
 #include <unordered_map>
@@ -171,6 +172,11 @@ struct Serializer {
         &op1_args
         ));
 
+    // Instructions
+    std::vector<executorch::Instruction> ins_vector;
+    ins_vector.emplace_back(CALL_KERNEL, 0, 0);
+    ins_vector.emplace_back(CALL_KERNEL, 1, 0);
+
     std::vector<flatbuffers::Offset<executorch::Chain>> chain_vector;
     std::vector<int> inputs{2}; // x. Q: would a and b counted inputs?
     std::vector<int> outputs{3}; // y.
@@ -178,7 +184,8 @@ struct Serializer {
         fbb,
         &inputs,
         &outputs,
-        &kernel_vector
+        &kernel_vector,
+        &ins_vector
         ));
 
 

@@ -1,4 +1,5 @@
 #include "executor.h"
+#include <core/instruction.h>
 
 namespace torch {
 namespace executor {
@@ -61,8 +62,10 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
   n_chains_ = chains->size();
   chains_ = new Chain[n_chains_];
   for (int i = 0; i < n_chains_; ++i) {
+    // load kernels
     auto kernels = chains->Get(i)->kernels();
     Chain* r_chain = &chains_[i]; // runtime chain
+    r_chain->s_chain_ = chains->Get(i);
     r_chain->n_kernels_ = kernels->size();
     r_chain->kernels_ = new Kernel[r_chain->n_kernels_];
     for (int j = 0; j < r_chain->n_kernels_; ++j) {
@@ -87,11 +90,22 @@ int ExecutionPlan::execute() const {
   // chain loo;
   for (int i = 0; i < n_chains_; ++i) {
     Chain* chain = &chains_[i];
-    // kernel loop
-    for (int j = 0; j < chain->n_kernels_; ++j) {
-      Kernel* kernel = &chain->kernels_[j];
-      operators_[kernel->op_index_](kernel->args_);
+    // instruction loop
+    for (int j = 0; j < chain->s_chain_->instructions()->size(); ++j) {
+      auto instruction = chain->s_chain_->instructions()->Get(j);
+      switch (instruction->op()) {
+      case CALL_KERNEL: {
+        Kernel* kernel = &chain->kernels_[instruction->x()];
+        operators_[kernel->op_index_](kernel->args_);
+      } break;
+      default:
+        error_with_message("Instruction is not supported.");
+      }
     }
+//    for (int j = 0; j < chain->n_kernels_; ++j) {
+//      Kernel* kernel = &chain->kernels_[j];
+//      operators_[kernel->op_index_](kernel->args_);
+//    }
   }
   return 0;
 }
