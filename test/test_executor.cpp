@@ -3,6 +3,7 @@
 #include <core/ArrayRef.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>
+#include <core/instruction.h>
 #include <core/operator_registry.h>
 #include <schema_generated.h>
 #include <unordered_map>
@@ -110,24 +111,24 @@ struct Serializer {
     // Values: a, b, x, y and intermediate z (ax), all tensors
     // Constant tensors a and b have data.
     std::vector<EValue> values;
-    auto a_sizes = new int[]{2, 2};
+    auto a_sizes = new int[2]{2, 2};
     int a_data[4]{1, 2, 3, 4};
     Tensor a(ScalarType::Int, 2, a_sizes, a_data);
     values.emplace_back(&a);
 
-    auto b_sizes = new int[]{2, 2};
+    auto b_sizes = new int[2]{2, 2};
     int b_data[4]{5, 6, 7, 8};
     Tensor b(ScalarType::Int, 2, b_sizes, b_data);
     values.emplace_back(&b);
 
     // Rest of tensors (x, z, y) don't have data
-    auto x_sizes = new int[]{2, 2};
+    auto x_sizes = new int[2]{2, 2};
     Tensor x(ScalarType::Int, 2, x_sizes);
 
-    auto y_sizes = new int[]{2, 2};
+    auto y_sizes = new int[2]{2, 2};
     Tensor y(ScalarType::Int, 2, y_sizes);
 
-    auto z_sizes = new int[]{2, 2};
+    auto z_sizes = new int[2]{2, 2};
     Tensor z(ScalarType::Int, 2, z_sizes);
 
     values.emplace_back(&x);
@@ -171,6 +172,11 @@ struct Serializer {
         &op1_args
         ));
 
+    // Instructions
+    std::vector<executorch::Instruction> ins_vector;
+    ins_vector.emplace_back(CALL_KERNEL, 0, 0);
+    ins_vector.emplace_back(CALL_KERNEL, 1, 0);
+
     std::vector<flatbuffers::Offset<executorch::Chain>> chain_vector;
     std::vector<int> inputs{2}; // x. Q: would a and b counted inputs?
     std::vector<int> outputs{3}; // y.
@@ -178,7 +184,8 @@ struct Serializer {
         fbb,
         &inputs,
         &outputs,
-        &kernel_vector
+        &kernel_vector,
+        &ins_vector
         ));
 
 
@@ -212,7 +219,7 @@ struct Serializer {
 };
 
 TEST(ExecutorTest, Tensor) {
-  auto sizes = new int[]{2, 2};
+  auto sizes = new int[2]{2, 2};
   int data[4]{1, 2, 3, 4};
   Tensor a(ScalarType::Int, 2, sizes, data);
 
@@ -224,7 +231,7 @@ TEST(ExecutorTest, Tensor) {
 }
 
 TEST(ExecutorTest, EValue) {
-  auto sizes = new int[]{2, 2};
+  auto sizes = new int[2]{2, 2};
   int data[4]{1, 2, 3, 4};
   Tensor a(ScalarType::Int, 2, sizes, data);
 
@@ -285,17 +292,17 @@ TEST(ExecutorTest, Registry) {
 
   EValue* values = new EValue[3];
 
-  auto a_sizes = new int[]{2, 2};
+  auto a_sizes = new int[2]{2, 2};
   int a_data[4]{1, 2, 3, 4};
   Tensor a(ScalarType::Int, 2, a_sizes, a_data);
   values[0] = EValue(&a);
 
-  auto b_sizes = new int[]{2, 2};
+  auto b_sizes = new int[2]{2, 2};
   int b_data[4]{5, 6, 7, 8};
   Tensor b(ScalarType::Int, 2, b_sizes, b_data);
   values[1] = EValue(&b);
 
-  auto c_sizes = new int[]{2, 2};
+  auto c_sizes = new int[2]{2, 2};
   int c_data[4]{0, 0, 0, 0};
   Tensor c(ScalarType::Int, 2, c_sizes, c_data);
   values[2] = EValue(&c);

@@ -11,15 +11,6 @@ namespace executorch {
 struct Buffer;
 struct BufferBuilder;
 
-struct Operator;
-struct OperatorBuilder;
-
-struct Kernel;
-struct KernelBuilder;
-
-struct Chain;
-struct ChainBuilder;
-
 struct QuantizedSchema;
 struct QuantizedSchemaBuilder;
 
@@ -46,6 +37,17 @@ struct TensorListBuilder;
 
 struct EValue;
 struct EValueBuilder;
+
+struct Operator;
+struct OperatorBuilder;
+
+struct Kernel;
+struct KernelBuilder;
+
+struct Instruction;
+
+struct Chain;
+struct ChainBuilder;
 
 struct ExecutionPlan;
 struct ExecutionPlanBuilder;
@@ -203,6 +205,62 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Double FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Double, 8);
 
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Instruction FLATBUFFERS_FINAL_CLASS {
+ private:
+  int8_t op_;
+  int8_t padding0__;  int16_t padding1__;
+  int32_t x_;
+  int8_t n_;
+  int8_t padding2__;  int16_t padding3__;
+
+ public:
+  Instruction()
+      : op_(0),
+        padding0__(0),
+        padding1__(0),
+        x_(0),
+        n_(0),
+        padding2__(0),
+        padding3__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+    (void)padding3__;
+  }
+  Instruction(int8_t _op, int32_t _x, int8_t _n)
+      : op_(flatbuffers::EndianScalar(_op)),
+        padding0__(0),
+        padding1__(0),
+        x_(flatbuffers::EndianScalar(_x)),
+        n_(flatbuffers::EndianScalar(_n)),
+        padding2__(0),
+        padding3__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+    (void)padding3__;
+  }
+  int8_t op() const {
+    return flatbuffers::EndianScalar(op_);
+  }
+  void mutate_op(int8_t _op) {
+    flatbuffers::WriteScalar(&op_, _op);
+  }
+  int32_t x() const {
+    return flatbuffers::EndianScalar(x_);
+  }
+  void mutate_x(int32_t _x) {
+    flatbuffers::WriteScalar(&x_, _x);
+  }
+  int8_t n() const {
+    return flatbuffers::EndianScalar(n_);
+  }
+  void mutate_n(int8_t _n) {
+    flatbuffers::WriteScalar(&n_, _n);
+  }
+};
+FLATBUFFERS_STRUCT_END(Instruction, 12);
+
 struct Buffer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef BufferBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -256,235 +314,6 @@ inline flatbuffers::Offset<Buffer> CreateBufferDirect(
   return executorch::CreateBuffer(
       _fbb,
       data__);
-}
-
-struct Operator FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef OperatorBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_OVERLOAD = 6
-  };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
-  }
-  flatbuffers::String *mutable_name() {
-    return GetPointer<flatbuffers::String *>(VT_NAME);
-  }
-  const flatbuffers::String *overload() const {
-    return GetPointer<const flatbuffers::String *>(VT_OVERLOAD);
-  }
-  flatbuffers::String *mutable_overload() {
-    return GetPointer<flatbuffers::String *>(VT_OVERLOAD);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
-           VerifyOffset(verifier, VT_OVERLOAD) &&
-           verifier.VerifyString(overload()) &&
-           verifier.EndTable();
-  }
-};
-
-struct OperatorBuilder {
-  typedef Operator Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Operator::VT_NAME, name);
-  }
-  void add_overload(flatbuffers::Offset<flatbuffers::String> overload) {
-    fbb_.AddOffset(Operator::VT_OVERLOAD, overload);
-  }
-  explicit OperatorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Operator> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Operator>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Operator> CreateOperator(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::String> overload = 0) {
-  OperatorBuilder builder_(_fbb);
-  builder_.add_overload(overload);
-  builder_.add_name(name);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Operator> CreateOperatorDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    const char *overload = nullptr) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto overload__ = overload ? _fbb.CreateString(overload) : 0;
-  return executorch::CreateOperator(
-      _fbb,
-      name__,
-      overload__);
-}
-
-struct Kernel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef KernelBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_OP_INDEX = 4,
-    VT_ARGS = 6
-  };
-  int32_t op_index() const {
-    return GetField<int32_t>(VT_OP_INDEX, 0);
-  }
-  bool mutate_op_index(int32_t _op_index = 0) {
-    return SetField<int32_t>(VT_OP_INDEX, _op_index, 0);
-  }
-  const flatbuffers::Vector<int32_t> *args() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ARGS);
-  }
-  flatbuffers::Vector<int32_t> *mutable_args() {
-    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_ARGS);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_OP_INDEX, 4) &&
-           VerifyOffset(verifier, VT_ARGS) &&
-           verifier.VerifyVector(args()) &&
-           verifier.EndTable();
-  }
-};
-
-struct KernelBuilder {
-  typedef Kernel Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_op_index(int32_t op_index) {
-    fbb_.AddElement<int32_t>(Kernel::VT_OP_INDEX, op_index, 0);
-  }
-  void add_args(flatbuffers::Offset<flatbuffers::Vector<int32_t>> args) {
-    fbb_.AddOffset(Kernel::VT_ARGS, args);
-  }
-  explicit KernelBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Kernel> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Kernel>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Kernel> CreateKernel(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    int32_t op_index = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> args = 0) {
-  KernelBuilder builder_(_fbb);
-  builder_.add_args(args);
-  builder_.add_op_index(op_index);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Kernel> CreateKernelDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    int32_t op_index = 0,
-    const std::vector<int32_t> *args = nullptr) {
-  auto args__ = args ? _fbb.CreateVector<int32_t>(*args) : 0;
-  return executorch::CreateKernel(
-      _fbb,
-      op_index,
-      args__);
-}
-
-struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ChainBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_INPUTS = 4,
-    VT_OUTPUTS = 6,
-    VT_KERNELS = 8
-  };
-  const flatbuffers::Vector<int32_t> *inputs() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUTS);
-  }
-  flatbuffers::Vector<int32_t> *mutable_inputs() {
-    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_INPUTS);
-  }
-  const flatbuffers::Vector<int32_t> *outputs() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_OUTPUTS);
-  }
-  flatbuffers::Vector<int32_t> *mutable_outputs() {
-    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_OUTPUTS);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *kernels() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *>(VT_KERNELS);
-  }
-  flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *mutable_kernels() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *>(VT_KERNELS);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_INPUTS) &&
-           verifier.VerifyVector(inputs()) &&
-           VerifyOffset(verifier, VT_OUTPUTS) &&
-           verifier.VerifyVector(outputs()) &&
-           VerifyOffset(verifier, VT_KERNELS) &&
-           verifier.VerifyVector(kernels()) &&
-           verifier.VerifyVectorOfTables(kernels()) &&
-           verifier.EndTable();
-  }
-};
-
-struct ChainBuilder {
-  typedef Chain Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_inputs(flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs) {
-    fbb_.AddOffset(Chain::VT_INPUTS, inputs);
-  }
-  void add_outputs(flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs) {
-    fbb_.AddOffset(Chain::VT_OUTPUTS, outputs);
-  }
-  void add_kernels(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels) {
-    fbb_.AddOffset(Chain::VT_KERNELS, kernels);
-  }
-  explicit ChainBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  flatbuffers::Offset<Chain> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Chain>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Chain> CreateChain(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0) {
-  ChainBuilder builder_(_fbb);
-  builder_.add_kernels(kernels);
-  builder_.add_outputs(outputs);
-  builder_.add_inputs(inputs);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Chain> CreateChainDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<int32_t> *inputs = nullptr,
-    const std::vector<int32_t> *outputs = nullptr,
-    const std::vector<flatbuffers::Offset<executorch::Kernel>> *kernels = nullptr) {
-  auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
-  auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
-  auto kernels__ = kernels ? _fbb.CreateVector<flatbuffers::Offset<executorch::Kernel>>(*kernels) : 0;
-  return executorch::CreateChain(
-      _fbb,
-      inputs__,
-      outputs__,
-      kernels__);
 }
 
 struct QuantizedSchema FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1072,6 +901,252 @@ inline flatbuffers::Offset<EValue> CreateEValue(
   builder_.add_val(val);
   builder_.add_val_type(val_type);
   return builder_.Finish();
+}
+
+struct Operator FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef OperatorBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_OVERLOAD = 6
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  flatbuffers::String *mutable_name() {
+    return GetPointer<flatbuffers::String *>(VT_NAME);
+  }
+  const flatbuffers::String *overload() const {
+    return GetPointer<const flatbuffers::String *>(VT_OVERLOAD);
+  }
+  flatbuffers::String *mutable_overload() {
+    return GetPointer<flatbuffers::String *>(VT_OVERLOAD);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_OVERLOAD) &&
+           verifier.VerifyString(overload()) &&
+           verifier.EndTable();
+  }
+};
+
+struct OperatorBuilder {
+  typedef Operator Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Operator::VT_NAME, name);
+  }
+  void add_overload(flatbuffers::Offset<flatbuffers::String> overload) {
+    fbb_.AddOffset(Operator::VT_OVERLOAD, overload);
+  }
+  explicit OperatorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Operator> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Operator>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Operator> CreateOperator(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> overload = 0) {
+  OperatorBuilder builder_(_fbb);
+  builder_.add_overload(overload);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Operator> CreateOperatorDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *overload = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto overload__ = overload ? _fbb.CreateString(overload) : 0;
+  return executorch::CreateOperator(
+      _fbb,
+      name__,
+      overload__);
+}
+
+struct Kernel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef KernelBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_OP_INDEX = 4,
+    VT_ARGS = 6
+  };
+  int32_t op_index() const {
+    return GetField<int32_t>(VT_OP_INDEX, 0);
+  }
+  bool mutate_op_index(int32_t _op_index = 0) {
+    return SetField<int32_t>(VT_OP_INDEX, _op_index, 0);
+  }
+  const flatbuffers::Vector<int32_t> *args() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ARGS);
+  }
+  flatbuffers::Vector<int32_t> *mutable_args() {
+    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_ARGS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_OP_INDEX, 4) &&
+           VerifyOffset(verifier, VT_ARGS) &&
+           verifier.VerifyVector(args()) &&
+           verifier.EndTable();
+  }
+};
+
+struct KernelBuilder {
+  typedef Kernel Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_op_index(int32_t op_index) {
+    fbb_.AddElement<int32_t>(Kernel::VT_OP_INDEX, op_index, 0);
+  }
+  void add_args(flatbuffers::Offset<flatbuffers::Vector<int32_t>> args) {
+    fbb_.AddOffset(Kernel::VT_ARGS, args);
+  }
+  explicit KernelBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Kernel> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Kernel>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Kernel> CreateKernel(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t op_index = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> args = 0) {
+  KernelBuilder builder_(_fbb);
+  builder_.add_args(args);
+  builder_.add_op_index(op_index);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Kernel> CreateKernelDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t op_index = 0,
+    const std::vector<int32_t> *args = nullptr) {
+  auto args__ = args ? _fbb.CreateVector<int32_t>(*args) : 0;
+  return executorch::CreateKernel(
+      _fbb,
+      op_index,
+      args__);
+}
+
+struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ChainBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_INPUTS = 4,
+    VT_OUTPUTS = 6,
+    VT_KERNELS = 8,
+    VT_INSTRUCTIONS = 10
+  };
+  const flatbuffers::Vector<int32_t> *inputs() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUTS);
+  }
+  flatbuffers::Vector<int32_t> *mutable_inputs() {
+    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_INPUTS);
+  }
+  const flatbuffers::Vector<int32_t> *outputs() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_OUTPUTS);
+  }
+  flatbuffers::Vector<int32_t> *mutable_outputs() {
+    return GetPointer<flatbuffers::Vector<int32_t> *>(VT_OUTPUTS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *kernels() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *>(VT_KERNELS);
+  }
+  flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *mutable_kernels() {
+    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *>(VT_KERNELS);
+  }
+  const flatbuffers::Vector<const executorch::Instruction *> *instructions() const {
+    return GetPointer<const flatbuffers::Vector<const executorch::Instruction *> *>(VT_INSTRUCTIONS);
+  }
+  flatbuffers::Vector<const executorch::Instruction *> *mutable_instructions() {
+    return GetPointer<flatbuffers::Vector<const executorch::Instruction *> *>(VT_INSTRUCTIONS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_INPUTS) &&
+           verifier.VerifyVector(inputs()) &&
+           VerifyOffset(verifier, VT_OUTPUTS) &&
+           verifier.VerifyVector(outputs()) &&
+           VerifyOffset(verifier, VT_KERNELS) &&
+           verifier.VerifyVector(kernels()) &&
+           verifier.VerifyVectorOfTables(kernels()) &&
+           VerifyOffset(verifier, VT_INSTRUCTIONS) &&
+           verifier.VerifyVector(instructions()) &&
+           verifier.EndTable();
+  }
+};
+
+struct ChainBuilder {
+  typedef Chain Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_inputs(flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs) {
+    fbb_.AddOffset(Chain::VT_INPUTS, inputs);
+  }
+  void add_outputs(flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs) {
+    fbb_.AddOffset(Chain::VT_OUTPUTS, outputs);
+  }
+  void add_kernels(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels) {
+    fbb_.AddOffset(Chain::VT_KERNELS, kernels);
+  }
+  void add_instructions(flatbuffers::Offset<flatbuffers::Vector<const executorch::Instruction *>> instructions) {
+    fbb_.AddOffset(Chain::VT_INSTRUCTIONS, instructions);
+  }
+  explicit ChainBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Chain> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Chain>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Chain> CreateChain(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const executorch::Instruction *>> instructions = 0) {
+  ChainBuilder builder_(_fbb);
+  builder_.add_instructions(instructions);
+  builder_.add_kernels(kernels);
+  builder_.add_outputs(outputs);
+  builder_.add_inputs(inputs);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Chain> CreateChainDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int32_t> *inputs = nullptr,
+    const std::vector<int32_t> *outputs = nullptr,
+    const std::vector<flatbuffers::Offset<executorch::Kernel>> *kernels = nullptr,
+    const std::vector<executorch::Instruction> *instructions = nullptr) {
+  auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
+  auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
+  auto kernels__ = kernels ? _fbb.CreateVector<flatbuffers::Offset<executorch::Kernel>>(*kernels) : 0;
+  auto instructions__ = instructions ? _fbb.CreateVectorOfStructs<executorch::Instruction>(*instructions) : 0;
+  return executorch::CreateChain(
+      _fbb,
+      inputs__,
+      outputs__,
+      kernels__,
+      instructions__);
 }
 
 struct ExecutionPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
