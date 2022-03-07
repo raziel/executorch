@@ -39,7 +39,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
         t->data = static_cast<void *>(buffer->mutable_data()->data());
       }
       else { // TODO: init RW memory pools and do pointer mapping
-        t->data = new uint8_t[t->nbytes];
+        t->data = new uint8_t[t->nbytes()];
       }
       values_[i].payload.as_tensor = t;
     } break;

@@ -15,8 +15,8 @@ void add_kernel(Tensor &a, Tensor &b, Tensor &c) {
   auto data_b = static_cast<int *>(b.data);
   auto data_c = static_cast<int *>(c.data);
   int n_elements = 1;
-  for (int i = 0; i < a.dim; ++i) {
-    n_elements *= a.sizes[i];
+  for (int i = 0; i < a.dim(); ++i) {
+    n_elements *= a.size(i);
   }
   for (int i = 0; i < n_elements; ++i) {
     data_c[i] = data_a[i] + data_b[i];
@@ -37,8 +37,8 @@ void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
   auto data_b = static_cast<int *>(b.data);
   auto data_c = static_cast<int *>(c.data);
   int n_elements = 1;
-  for (int i = 0; i < a.dim; ++i) {
-    n_elements *= a.sizes[i];
+  for (int i = 0; i < a.dim(); ++i) {
+    n_elements *= a.size(i);
   }
   for (int i = 0; i < n_elements; ++i) {
     data_c[i] = data_a[i] * data_b[i];

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <ArrayRef.h>
 
 namespace c10 {
 struct alignas(1) qint8 {
@@ -63,30 +64,76 @@ static constexpr uint8_t scalarTypeItemSizes[NumScalarTypes] = {
 //    unnecessary memory copy.
 // 2. It should have all APIs used in operator kernels.
 // TODO: APIs common to at::Tensor
-struct Tensor {
-  ScalarType type;
-  void* data = nullptr;
-  int dim = 0;
-  int nbytes = 0;
-  int* sizes = nullptr;
-  int* strides = nullptr;
-  Tensor() {}
-  Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr)
-  : dim(dim), sizes(sizes), type(type), data(data), strides(strides)
-  {
-    if (!data) {
-      nbytes = 0;
-      return;
+// TODO: safety checks
+class Tensor {
+
+  public:
+
+    void* data = nullptr;
+
+    Tensor() {}
+    Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr)
+    : dim_(dim), sizes_(sizes, sizeof sizes / sizeof sizes[0]), type_(type), data(data), strides_(strides)
+    {
+      if (!data) {
+        return;
+      }
+      numel_ = compute_numel();
+      nbytes_ = numel_ * scalarTypeItemSizes[static_cast<uint16_t>(type_)];
     }
-    nbytes = 1;
-    for (int i = 0; i < dim; ++i) {
-      nbytes *= sizes[i];
+
+    size_t nbytes() const {
+      return nbytes_;
     }
-    nbytes *= scalarTypeItemSizes[static_cast<uint16_t>(type)];
-  }
-  // TODO: Quantizer
+
+    int size(int dim) const {
+      return sizes_[dim];
+    }
+
+    int dim() const {
+      return dim_;
+    }
+
+    int numel() const {
+      return numel_;
+    }
+
+    const ScalarType& dtype() const {
+      return type_;
+    }
+
+    // Return the size of one element of the tensor
+    int element_size() const{
+      return scalarTypeItemSizes[static_cast<int>(type_)];
+    }
+
+    utils::ArrayRef<int>& size() {
+      return sizes_;
+    }
+    const utils::ArrayRef<int>& size() const {
+      return sizes_;
+    }
+
+  private:
+
+    ScalarType type_;
+    int dim_ = 0;
+    int nbytes_ = 0;
+    utils::ArrayRef<int> sizes_;
+    int* strides_ = nullptr;
+    int numel_ = 0;
+
+    /**
+    * Compute the number of elements based on the sizes of a tensor.
+    */
+    int compute_numel() const {
+      int n = 1;
+      for (auto s : size()) {
+        n *= s;
+      }
+      return n;
+    }
 };
 
 } // namespace executor
 } // namespace torch
-

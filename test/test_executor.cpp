@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core/tensor.h>
+#include <core/Tensor.h>
 #include <core/ArrayRef.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>
@@ -38,12 +38,15 @@ struct Serializer {
       }
     }
 
-    std::vector<int> sizes{&tensor->sizes[0], &tensor->sizes[0] + tensor->dim};
+    std::vector<int> sizes;
+    for(int i : tensor->size()) {
+      sizes.push_back(i);
+    }
 
     return executorch::CreateTensorDirect(
         fbb,
         buffer_index,
-        static_cast<int8_t>(tensor->type),
+        static_cast<int8_t>(tensor->dtype()),
         0, // hard code storage offset for now. It's tensor's local storage offset, not related to serialization
         &sizes,
         0,
@@ -89,12 +92,12 @@ struct Serializer {
     buffer_offsets_.push_back(buffer_offset);
     for (auto td : tensor_data_) {
       fbb.ForceVectorAlignment(
-          td->nbytes, sizeof(uint8_t), FLATBUFFERS_MAX_ALIGNMENT);
+          td->nbytes(), sizeof(uint8_t), FLATBUFFERS_MAX_ALIGNMENT);
       auto buffer_offset = executorch::CreateBuffer(
           fbb,
           fbb.CreateVector(
               reinterpret_cast<const uint8_t*>(td->data),
-              td->nbytes));
+              td->nbytes()));
       buffer_offsets_.push_back(buffer_offset);
     }
   }
@@ -134,7 +137,7 @@ struct Serializer {
     values.emplace_back(&y);
     values.emplace_back(&z);
 
-    int debugint = values[0].toTensor()->sizes[0];
+    int debugint = values[0].toTensor()->size(0);
     serializeValues(fbb, values);
 
     // operators
@@ -230,7 +233,7 @@ TEST(ExecutorTest, EValue) {
 
   EValue v(&a);
   ASSERT_TRUE(v.isTensor());
-  ASSERT_EQ(v.toTensor()->nbytes, 16);
+  ASSERT_EQ(v.toTensor()->nbytes(), 16);
 }
 
 TEST(ExecutorTest, Serialize) {
@@ -268,8 +271,8 @@ TEST(ExecutorTest, Load) {
   const auto& plan = executor.executionPlan();
   ASSERT_EQ(plan.n_value_, 5);
   Tensor* b = plan.values_[1].toTensor();
-  ASSERT_EQ(b->type, ScalarType::Int);
-  ASSERT_EQ(b->dim, 2);
+  ASSERT_EQ(b->dtype(), ScalarType::Int);
+  ASSERT_EQ(b->dim(), 2);
   auto d_ptr = static_cast<int*>(b->data);
   ASSERT_EQ(d_ptr[3], 8);
 
