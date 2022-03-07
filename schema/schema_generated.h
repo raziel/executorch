@@ -44,6 +44,8 @@ struct OperatorBuilder;
 struct Kernel;
 struct KernelBuilder;
 
+struct Instruction;
+
 struct Chain;
 struct ChainBuilder;
 
@@ -202,6 +204,62 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Double FLATBUFFERS_FINAL_CLASS {
   }
 };
 FLATBUFFERS_STRUCT_END(Double, 8);
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Instruction FLATBUFFERS_FINAL_CLASS {
+ private:
+  int8_t op_;
+  int8_t padding0__;  int16_t padding1__;
+  int32_t x_;
+  int8_t n_;
+  int8_t padding2__;  int16_t padding3__;
+
+ public:
+  Instruction()
+      : op_(0),
+        padding0__(0),
+        padding1__(0),
+        x_(0),
+        n_(0),
+        padding2__(0),
+        padding3__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+    (void)padding3__;
+  }
+  Instruction(int8_t _op, int32_t _x, int8_t _n)
+      : op_(flatbuffers::EndianScalar(_op)),
+        padding0__(0),
+        padding1__(0),
+        x_(flatbuffers::EndianScalar(_x)),
+        n_(flatbuffers::EndianScalar(_n)),
+        padding2__(0),
+        padding3__(0) {
+    (void)padding0__;
+    (void)padding1__;
+    (void)padding2__;
+    (void)padding3__;
+  }
+  int8_t op() const {
+    return flatbuffers::EndianScalar(op_);
+  }
+  void mutate_op(int8_t _op) {
+    flatbuffers::WriteScalar(&op_, _op);
+  }
+  int32_t x() const {
+    return flatbuffers::EndianScalar(x_);
+  }
+  void mutate_x(int32_t _x) {
+    flatbuffers::WriteScalar(&x_, _x);
+  }
+  int8_t n() const {
+    return flatbuffers::EndianScalar(n_);
+  }
+  void mutate_n(int8_t _n) {
+    flatbuffers::WriteScalar(&n_, _n);
+  }
+};
+FLATBUFFERS_STRUCT_END(Instruction, 12);
 
 struct Buffer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef BufferBuilder Builder;
@@ -991,6 +1049,8 @@ struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_INPUTS = 4,
     VT_OUTPUTS = 6,
     VT_KERNELS = 8
+    VT_KERNELS = 8,
+    VT_INSTRUCTIONS = 10
   };
   const flatbuffers::Vector<int32_t> *inputs() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_INPUTS);
@@ -1010,6 +1070,12 @@ struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *mutable_kernels() {
     return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>> *>(VT_KERNELS);
   }
+  const flatbuffers::Vector<const executorch::Instruction *> *instructions() const {
+    return GetPointer<const flatbuffers::Vector<const executorch::Instruction *> *>(VT_INSTRUCTIONS);
+  }
+  flatbuffers::Vector<const executorch::Instruction *> *mutable_instructions() {
+    return GetPointer<flatbuffers::Vector<const executorch::Instruction *> *>(VT_INSTRUCTIONS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_INPUTS) &&
@@ -1019,6 +1085,8 @@ struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_KERNELS) &&
            verifier.VerifyVector(kernels()) &&
            verifier.VerifyVectorOfTables(kernels()) &&
+           VerifyOffset(verifier, VT_INSTRUCTIONS) &&
+           verifier.VerifyVector(instructions()) &&
            verifier.EndTable();
   }
 };
@@ -1035,6 +1103,9 @@ struct ChainBuilder {
   }
   void add_kernels(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels) {
     fbb_.AddOffset(Chain::VT_KERNELS, kernels);
+  }
+  void add_instructions(flatbuffers::Offset<flatbuffers::Vector<const executorch::Instruction *>> instructions) {
+    fbb_.AddOffset(Chain::VT_INSTRUCTIONS, instructions);
   }
   explicit ChainBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1053,6 +1124,10 @@ inline flatbuffers::Offset<Chain> CreateChain(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0) {
   ChainBuilder builder_(_fbb);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const executorch::Instruction *>> instructions = 0) {
+  ChainBuilder builder_(_fbb);
+  builder_.add_instructions(instructions);
   builder_.add_kernels(kernels);
   builder_.add_outputs(outputs);
   builder_.add_inputs(inputs);
@@ -1067,11 +1142,19 @@ inline flatbuffers::Offset<Chain> CreateChainDirect(
   auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
   auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
   auto kernels__ = kernels ? _fbb.CreateVector<flatbuffers::Offset<executorch::Kernel>>(*kernels) : 0;
+    const std::vector<flatbuffers::Offset<executorch::Kernel>> *kernels = nullptr,
+    const std::vector<executorch::Instruction> *instructions = nullptr) {
+  auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
+  auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
+  auto kernels__ = kernels ? _fbb.CreateVector<flatbuffers::Offset<executorch::Kernel>>(*kernels) : 0;
+  auto instructions__ = instructions ? _fbb.CreateVectorOfStructs<executorch::Instruction>(*instructions) : 0;
   return executorch::CreateChain(
       _fbb,
       inputs__,
       outputs__,
       kernels__);
+      kernels__,
+      instructions__);
 }
 
 struct ExecutionPlan FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

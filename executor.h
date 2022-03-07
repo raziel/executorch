@@ -24,6 +24,8 @@ struct Kernel {
 };
 
 struct Chain {
+  // serialization chain to reuse serialization data (e.g., instructions)
+  const executorch::Chain* s_chain_;
   int n_kernels_;
   Kernel* kernels_;
 };
