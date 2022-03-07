@@ -40,7 +40,7 @@ struct Serializer {
     }
 
     std::vector<int> sizes;
-    for(int i : tensor->size()) {
+    for(int i : tensor->sizes()) {
       sizes.push_back(i);
     }
 

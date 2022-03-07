@@ -73,7 +73,7 @@ class Tensor {
 
     Tensor() {}
     Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr)
-    : dim_(dim), sizes_(sizes, sizeof sizes / sizeof sizes[0]), type_(type), data(data), strides_(strides)
+    : dim_(dim), sizes_(sizes, dim), type_(type), data(data), strides_(strides)
     {
       if (!data) {
         return;
@@ -107,10 +107,10 @@ class Tensor {
       return scalarTypeItemSizes[static_cast<int>(type_)];
     }
 
-    utils::ArrayRef<int>& size() {
+    utils::ArrayRef<int> sizes() {
       return sizes_;
     }
-    const utils::ArrayRef<int>& size() const {
+    const utils::ArrayRef<int> sizes() const {
       return sizes_;
     }
 
@@ -128,7 +128,7 @@ class Tensor {
     */
     int compute_numel() const {
       int n = 1;
-      for (auto s : size()) {
+      for (auto s : sizes()) {
         n *= s;
       }
       return n;
