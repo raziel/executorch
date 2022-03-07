@@ -1048,7 +1048,6 @@ struct Chain FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_INPUTS = 4,
     VT_OUTPUTS = 6,
-    VT_KERNELS = 8
     VT_KERNELS = 8,
     VT_INSTRUCTIONS = 10
   };
@@ -1122,8 +1121,6 @@ inline flatbuffers::Offset<Chain> CreateChain(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> inputs = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> outputs = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0) {
-  ChainBuilder builder_(_fbb);
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Kernel>>> kernels = 0,
     flatbuffers::Offset<flatbuffers::Vector<const executorch::Instruction *>> instructions = 0) {
   ChainBuilder builder_(_fbb);
@@ -1138,10 +1135,6 @@ inline flatbuffers::Offset<Chain> CreateChainDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<int32_t> *inputs = nullptr,
     const std::vector<int32_t> *outputs = nullptr,
-    const std::vector<flatbuffers::Offset<executorch::Kernel>> *kernels = nullptr) {
-  auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
-  auto outputs__ = outputs ? _fbb.CreateVector<int32_t>(*outputs) : 0;
-  auto kernels__ = kernels ? _fbb.CreateVector<flatbuffers::Offset<executorch::Kernel>>(*kernels) : 0;
     const std::vector<flatbuffers::Offset<executorch::Kernel>> *kernels = nullptr,
     const std::vector<executorch::Instruction> *instructions = nullptr) {
   auto inputs__ = inputs ? _fbb.CreateVector<int32_t>(*inputs) : 0;
@@ -1152,7 +1145,6 @@ inline flatbuffers::Offset<Chain> CreateChainDirect(
       _fbb,
       inputs__,
       outputs__,
-      kernels__);
       kernels__,
       instructions__);
 }
