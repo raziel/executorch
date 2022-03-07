@@ -43,3 +43,6 @@ Makefile
 # Clion related
 .idea/
 cmake-build*
+
+# Python cache files
+__pycache__
