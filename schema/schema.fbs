@@ -45,8 +45,12 @@ struct Bool {
   bool_val:bool;
 }
 
-struct Double{
+struct Double {
   double_val:double;
+}
+
+table String {
+  string_val:string;
 }
 
 table IntList {
@@ -74,6 +78,7 @@ union ValueUnion {
   Bool,
   Double,
   Tensor,
+  String,
   IntList,
   DoubleList,
   BoolList,

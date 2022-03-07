@@ -3,10 +3,11 @@
 #define TORCH_FORALL_TAGS(_) \
   _(None)                    \
   _(Tensor)                  \
+  _(String)                  \
   _(Double)                  \
   _(Int)                     \
   _(Bool)                    \
-  _(ListBool)              \
+  _(ListBool)                \
   _(ListDouble)              \
   _(ListInt)                 \
   _(ListTensor)              \

@@ -20,6 +20,7 @@ struct EValue {
 
         // Raw pointer instead of intrusive_ptr to avoid atomic dependency
         Tensor* as_tensor;
+        std::string* as_string;
         utils::ArrayRef<int64_t>* as_int_list;
         utils::ArrayRef<double>* as_double_list;
         utils::ArrayRef<bool>* as_bool_list;
@@ -130,6 +131,21 @@ struct EValue {
             error_with_message("EValue is not a Tensor.");
         }
         return payload.as_tensor;
+    }
+
+    EValue(std::string* s) : tag(Tag::String) {
+        payload.as_string = s;
+    }
+
+    bool isString() const {
+        return tag == Tag::String;
+    }
+
+    bool toString() const {
+        if (!isString()) {
+            error_with_message("EValue is not a String.");
+        }
+        return payload.as_string;
     }
 
     EValue(utils::ArrayRef<int64_t>* i) : tag(Tag::ListInt) {

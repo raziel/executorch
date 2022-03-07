@@ -23,6 +23,9 @@ struct Bool;
 
 struct Double;
 
+struct String;
+struct StringBuilder;
+
 struct IntList;
 struct IntListBuilder;
 
@@ -61,21 +64,23 @@ enum class ValueUnion : uint8_t {
   Bool = 2,
   Double = 3,
   Tensor = 4,
-  IntList = 5,
-  DoubleList = 6,
-  BoolList = 7,
-  TensorList = 8,
+  String = 5,
+  IntList = 6,
+  DoubleList = 7,
+  BoolList = 8,
+  TensorList = 9,
   MIN = NONE,
   MAX = TensorList
 };
 
-inline const ValueUnion (&EnumValuesValueUnion())[9] {
+inline const ValueUnion (&EnumValuesValueUnion())[10] {
   static const ValueUnion values[] = {
     ValueUnion::NONE,
     ValueUnion::Int,
     ValueUnion::Bool,
     ValueUnion::Double,
     ValueUnion::Tensor,
+    ValueUnion::String,
     ValueUnion::IntList,
     ValueUnion::DoubleList,
     ValueUnion::BoolList,
@@ -85,12 +90,13 @@ inline const ValueUnion (&EnumValuesValueUnion())[9] {
 }
 
 inline const char * const *EnumNamesValueUnion() {
-  static const char * const names[10] = {
+  static const char * const names[11] = {
     "NONE",
     "Int",
     "Bool",
     "Double",
     "Tensor",
+    "String",
     "IntList",
     "DoubleList",
     "BoolList",
@@ -124,6 +130,10 @@ template<> struct ValueUnionTraits<executorch::Double> {
 
 template<> struct ValueUnionTraits<executorch::Tensor> {
   static const ValueUnion enum_value = ValueUnion::Tensor;
+};
+
+template<> struct ValueUnionTraits<executorch::String> {
+  static const ValueUnion enum_value = ValueUnion::String;
 };
 
 template<> struct ValueUnionTraits<executorch::IntList> {
@@ -574,6 +584,60 @@ inline flatbuffers::Offset<Tensor> CreateTensorDirect(
       quantized_schema);
 }
 
+struct String FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef StringBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_STRING_VAL = 4
+  };
+  const flatbuffers::String *string_val() const {
+    return GetPointer<const flatbuffers::String *>(VT_STRING_VAL);
+  }
+  flatbuffers::String *mutable_string_val() {
+    return GetPointer<flatbuffers::String *>(VT_STRING_VAL);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_STRING_VAL) &&
+           verifier.VerifyString(string_val()) &&
+           verifier.EndTable();
+  }
+};
+
+struct StringBuilder {
+  typedef String Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_string_val(flatbuffers::Offset<flatbuffers::String> string_val) {
+    fbb_.AddOffset(String::VT_STRING_VAL, string_val);
+  }
+  explicit StringBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<String> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<String>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<String> CreateString(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> string_val = 0) {
+  StringBuilder builder_(_fbb);
+  builder_.add_string_val(string_val);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<String> CreateStringDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *string_val = nullptr) {
+  auto string_val__ = string_val ? _fbb.CreateString(string_val) : 0;
+  return executorch::CreateString(
+      _fbb,
+      string_val__);
+}
+
 struct IntList FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef IntListBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -816,6 +880,9 @@ struct EValue FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const executorch::Tensor *val_as_Tensor() const {
     return val_type() == executorch::ValueUnion::Tensor ? static_cast<const executorch::Tensor *>(val()) : nullptr;
   }
+  const executorch::String *val_as_String() const {
+    return val_type() == executorch::ValueUnion::String ? static_cast<const executorch::String *>(val()) : nullptr;
+  }
   const executorch::IntList *val_as_IntList() const {
     return val_type() == executorch::ValueUnion::IntList ? static_cast<const executorch::IntList *>(val()) : nullptr;
   }
@@ -854,6 +921,10 @@ template<> inline const executorch::Double *EValue::val_as<executorch::Double>()
 
 template<> inline const executorch::Tensor *EValue::val_as<executorch::Tensor>() const {
   return val_as_Tensor();
+}
+
+template<> inline const executorch::String *EValue::val_as<executorch::String>() const {
+  return val_as_String();
 }
 
 template<> inline const executorch::IntList *EValue::val_as<executorch::IntList>() const {
@@ -1378,6 +1449,10 @@ inline bool VerifyValueUnion(flatbuffers::Verifier &verifier, const void *obj, V
     }
     case ValueUnion::Tensor: {
       auto ptr = reinterpret_cast<const executorch::Tensor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ValueUnion::String: {
+      auto ptr = reinterpret_cast<const executorch::String *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ValueUnion::IntList: {
