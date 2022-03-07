@@ -82,27 +82,40 @@ struct EValue {
         return payload.as_bool;
     }
 
-    // TODO Support Scalar. Need implict constructors from scalar before we can support in EValue
-    // The plan will be to convert out of scalar upon EValue creation and let the implicit constuctor
-    // handle toScalar().
-    // EValue(Scalar s) {
-    //     <set tag and correct union value based on dtype of s>
-    // }
+    /// Construct an EValue using the implicit value of a Scalar.
+    EValue(Scalar s) {
+        if (s.isInt()) {
+            tag = Tag::Int;
+            payload.as_int = s.toInt();
+        }
+        else if (s.isDouble()) {
+            tag = Tag::Double;
+            payload.as_double = s.toDouble();
+        }
+        else if (s.isBool()) {
+            tag = Tag::Bool;
+            payload.as_bool = s.toBool();
+        } else {
+            error_with_message("Scalar passed to EValue is not initialized.");
+        }
+    }
 
-    // bool isScalar() const {
-    //     return tag == Tag::Bool || tag == Tag::Double || tag == Tag::Int;
-    // }
+    bool isScalar() const {
+        return tag == Tag::Int || tag == Tag::Double || tag == Tag::Bool;
+    }
 
-    // Scalar toScalar() const {
-    //     if (isDouble())
-    //         return toDouble();
-    //     else if (isInt())
-    //         return toInt();
-    //     else if (isBool())
-    //         return toBool();
-    //     else
-    //         error_with_message("EValue is not a Scalar.");
-    // }
+    Scalar toScalar() const {
+        // Convert from implicit value to Scalar using implicit constructors.
+
+        if (isDouble())
+            return toDouble();
+        else if (isInt())
+            return toInt();
+        else if (isBool())
+            return toBool();
+        else
+            error_with_message("EValue is not a Scalar.");
+    }
 
     EValue(Tensor* t) : tag(Tag::Tensor) {
         payload.as_tensor = t;
