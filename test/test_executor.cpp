@@ -243,36 +243,6 @@ TEST(ExecutorTest, EValue) {
   ASSERT_EQ(v.toTensor()->nbytes(), 16);
 }
 
-TEST(ExecutorTest, EValueFromScalar) {
-  Scalar b((bool)true);
-  Scalar i((int64_t)2);
-  Scalar d((double)3.0);
-
-  EValue evalue_b(b);
-  ASSERT_TRUE(evalue_b.isScalar());
-  ASSERT_TRUE(evalue_b.isBool());
-  ASSERT_EQ(evalue_b.toBool(), true);
-
-  EValue evalue_i(i);
-  ASSERT_TRUE(evalue_i.isScalar());
-  ASSERT_TRUE(evalue_i.isInt());
-  ASSERT_EQ(evalue_i.toInt(), 2);
-
-  EValue evalue_d(d);
-  ASSERT_TRUE(evalue_d.isScalar());
-  ASSERT_TRUE(evalue_d.isDouble());
-  ASSERT_NEAR(evalue_d.toDouble(), 3.0, 0.01);
-}
-
-TEST(ExecutorTest, EValueToScalar) {
-  EValue v((int64_t)2);
-  ASSERT_TRUE(v.isScalar());
-
-  Scalar s = v.toScalar();
-  ASSERT_TRUE(s.isInt());
-  ASSERT_EQ(s.toInt(), 2);
-}
-
 TEST(ExecutorTest, Serialize) {
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
@@ -384,6 +354,36 @@ TEST(ExecutorTest, Execute) {
   ASSERT_EQ(data_output[1], 8);
   ASSERT_EQ(data_output[2], 10);
   ASSERT_EQ(data_output[3], 12);
+}
+
+TEST(ExecutorTest, EValueFromScalar) {
+  Scalar b((bool)true);
+  Scalar i((int64_t)2);
+  Scalar d((double)3.0);
+
+  EValue evalue_b(b);
+  ASSERT_TRUE(evalue_b.isScalar());
+  ASSERT_TRUE(evalue_b.isBool());
+  ASSERT_EQ(evalue_b.toBool(), true);
+
+  EValue evalue_i(i);
+  ASSERT_TRUE(evalue_i.isScalar());
+  ASSERT_TRUE(evalue_i.isInt());
+  ASSERT_EQ(evalue_i.toInt(), 2);
+
+  EValue evalue_d(d);
+  ASSERT_TRUE(evalue_d.isScalar());
+  ASSERT_TRUE(evalue_d.isDouble());
+  ASSERT_NEAR(evalue_d.toDouble(), 3.0, 0.01);
+}
+
+TEST(ExecutorTest, EValueToScalar) {
+  EValue v((int64_t)2);
+  ASSERT_TRUE(v.isScalar());
+
+  Scalar s = v.toScalar();
+  ASSERT_TRUE(s.isInt());
+  ASSERT_EQ(s.toInt(), 2);
 }
 
 } // namespace executor

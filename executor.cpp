@@ -25,6 +25,14 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       values_[i].tag = Tag::Int;
       values_[i].payload.as_int = serialization_value->val_as_Int()->int_val();
     } break;
+    case executorch::ValueUnion::Double: {
+      values_[i].tag = Tag::Double;
+      values_[i].payload.as_double = serialization_value->val_as_Double()->double_val();
+    } break;
+    case executorch::ValueUnion::Bool: {
+      values_[i].tag = Tag::Bool;
+      values_[i].payload.as_bool = serialization_value->val_as_Bool()->bool_val();
+    } break;
     case executorch::ValueUnion::Tensor: {
       values_[i].tag = Tag::Tensor;
       auto s_tensor = serialization_value->val_as_Tensor();

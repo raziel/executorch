@@ -30,6 +30,8 @@ table Tensor {
   storage_offset:int;
   sizes:[int];
   strides:[int];
+
+  // out of scope M1
   requires_grad:bool;
 
   // only set for quantized tensors

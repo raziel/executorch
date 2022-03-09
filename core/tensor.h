@@ -125,6 +125,7 @@ class Tensor {
 
     /**
     * Compute the number of elements based on the sizes of a tensor.
+    * pre: data != null so sizes.size() != 0
     */
     int compute_numel() const {
       int n = 1;
