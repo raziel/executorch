@@ -640,35 +640,11 @@ def gen_per_operator_headers(
         grouped_functions_by_root_name[name].append(group)
 
     for name, functions in functions_by_root_name.items():
-        ops_fm.write_with_template(
-            f'{name}_ops.h', 'Operator.h', lambda: {
-                'declarations': list(mapMaybe(ComputeOperators(
-                    Target.DECLARATION), functions)),
-            })
-
-        ops_fm.write_with_template(
-            f'{name}.h', 'Function.h', lambda: {
-                'static_dispatch_ops_headers': list(mapMaybe(
-                    lambda fn: static_dispatch_ops_header(fn, backend_index=static_dispatch_idx),
-                    functions)),
-                'operator_includes': f'#include <ATen/ops/{name}_ops.h>',
-                'function_definitions': list(mapMaybe(ComputeFunction(
-                    static_dispatch_backend_index=static_dispatch_idx), functions)),
-            })
 
         grouped_functions = grouped_functions_by_root_name.get(name, [])
         structured_functions = [fn for fn in grouped_functions
                                 if isinstance(fn, NativeFunctionsGroup) and fn.structured]
         is_structured = len(structured_functions) > 0
-
-
-        if is_structured:
-            ops_fm.write_with_template(
-                f'{name}_meta.h', 'NativeMetaFunction.h', lambda: {
-                    'meta_function_declarations': list(mapMaybe(
-                        compute_meta_function_declaration, structured_functions)),
-                })
-
 
         ops_fm.write_with_template(
             f'{name}_native.h', 'NativeFunction.h', lambda: {
@@ -686,8 +662,6 @@ def gen_per_operator_headers(
 
     for category, suffix in [
         ('Functions', ''),
-        ('Operators', '_ops'),
-        ('NativeMetaFunctions', '_meta'),
         ('NativeFunctions', '_native'),
     ]:
         cpu_fm.write(f'{category}.h', lambda: {
@@ -730,35 +704,6 @@ def gen_per_operator_headers(
                     'dispatch_namespaced_declarations': declarations,
                 })
 
-        fm = cuda_fm if is_cuda_dispatch_key(dispatch_key) else cpu_fm
-        if dispatch_key in static_dispatch_keys(static_dispatch_idx):
-            # See Note [Avoiding Include Cycles In Static Dispatch]
-            inl_headers = ''
-        else:
-            inl_headers = f'#include <ATen/{dispatch_key}Functions_inl.h>'
-
-        fm.write_with_template(f'{dispatch_key}Functions.h', 'DispatchKeyFunctions.h', lambda: {
-            'dispatch_key': str(dispatch_key),
-            'inline_headers_for_nonstatic_build': inl_headers,
-        })
-        fm.write_with_template(f'{dispatch_key}Functions_inl.h', 'DispatchKeyFunctions_inl.h', lambda: {
-            'dispatch_namespace': dispatch_namespace,
-            'DispatchKeyFunctions_inl_includes': [
-                f'#include <ATen/ops/{name}_{dispatch_namespace}_dispatch.h>'
-                for name in sorted(dispatch_names)
-            ],
-            'dispatch_namespaced_declarations': [],
-        })
-        del fm
-
-    cpu_fm.write('MethodOperators.h', lambda: {
-        'MethodOperators_includes': sorted(
-            f'#include <ATen/ops/{name}_ops.h>'
-            for name, functions in functions_by_root_name.items()
-            if any(Variant.method in fn.variants for fn in functions)
-        ),
-        'MethodOperators_declarations': [],
-    })
 
 
 def gen_source_files(
@@ -873,22 +818,6 @@ def gen_source_files(
                 grouped_native_functions
             )),
         })
-
-    def key_func(fn: Union[NativeFunction, NativeFunctionsGroup]) -> str:
-        return fn.root_name
-
-    cpu_fm.write_sharded(
-        'Operators.cpp',
-        native_functions,
-        key_fn=key_func,
-        env_callable=lambda fn: {
-            'operator_headers': [f'#include <ATen/ops/{fn.root_name}.h>'],
-            'definitions': [ComputeOperators(Target.DEFINITION)(fn)]},
-        num_shards=5,
-        sharded_keys={'operator_headers', 'definitions'}
-    )
-
-    cpu_fm.write('Functions.cpp', lambda: {})
 
     core_fm.write('TensorMethods.cpp', lambda: {})
 
