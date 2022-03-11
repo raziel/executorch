@@ -107,10 +107,10 @@ class Tensor {
       return scalarTypeItemSizes[static_cast<int>(type_)];
     }
 
-    utils::ArrayRef<int> sizes() {
+    ArrayRef<int> sizes() {
       return sizes_;
     }
-    const utils::ArrayRef<int> sizes() const {
+    const ArrayRef<int> sizes() const {
       return sizes_;
     }
 
@@ -119,7 +119,7 @@ class Tensor {
     ScalarType type_;
     int dim_ = 0;
     int nbytes_ = 0;
-    utils::ArrayRef<int> sizes_;
+    ArrayRef<int> sizes_;
     int* strides_ = nullptr;
     int numel_ = 0;
 

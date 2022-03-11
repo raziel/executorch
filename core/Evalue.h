@@ -21,10 +21,10 @@ struct EValue {
         // Raw pointer instead of intrusive_ptr to avoid atomic dependency
         Tensor* as_tensor;
         std::string* as_string;
-        utils::ArrayRef<int64_t>* as_int_list;
-        utils::ArrayRef<double>* as_double_list;
-        utils::ArrayRef<bool>* as_bool_list;
-        utils::ArrayRef<Tensor>* as_tensor_list;
+        ArrayRef<int64_t>* as_int_list;
+        ArrayRef<double>* as_double_list;
+        ArrayRef<bool>* as_bool_list;
+        ArrayRef<Tensor>* as_tensor_list;
 
         // TODO
         // c10::optional equivalent
@@ -148,7 +148,7 @@ struct EValue {
         return payload.as_string;
     }
 
-    EValue(utils::ArrayRef<int64_t>* i) : tag(Tag::ListInt) {
+    EValue(ArrayRef<int64_t>* i) : tag(Tag::ListInt) {
         payload.as_int_list = i;
     }
 
@@ -156,14 +156,14 @@ struct EValue {
         return tag == Tag::ListInt;
     }
 
-    utils::ArrayRef<int64_t>* toIntList() const {
+    ArrayRef<int64_t>* toIntList() const {
         if (!isIntList()) {
             error_with_message("EValue is not an Int List.");
         }
         return payload.as_int_list;
     }
 
-    EValue(utils::ArrayRef<bool>* b) : tag(Tag::ListBool) {
+    EValue(ArrayRef<bool>* b) : tag(Tag::ListBool) {
         payload.as_bool_list = b;
     }
 
@@ -171,14 +171,14 @@ struct EValue {
         return tag == Tag::ListBool;
     }
 
-    utils::ArrayRef<bool>* toBoolList() const {
+    ArrayRef<bool>* toBoolList() const {
         if (!isBoolList()) {
             error_with_message("EValue is not a Bool List.");
         }
         return payload.as_bool_list;
     }
 
-    EValue(utils::ArrayRef<double>* d) : tag(Tag::ListDouble) {
+    EValue(ArrayRef<double>* d) : tag(Tag::ListDouble) {
         payload.as_double_list = d;
     }
 
@@ -186,14 +186,14 @@ struct EValue {
         return tag == Tag::ListDouble;
     }
 
-    utils::ArrayRef<double>* toDoubleList() const {
+    ArrayRef<double>* toDoubleList() const {
         if (!isDoubleList()) {
             error_with_message("EValue is not a Double List.");
         }
         return payload.as_double_list;
     }
 
-    EValue(utils::ArrayRef<Tensor>* t) : tag(Tag::ListTensor) {
+    EValue(ArrayRef<Tensor>* t) : tag(Tag::ListTensor) {
         payload.as_tensor_list = t;
     }
 
@@ -201,14 +201,14 @@ struct EValue {
         return tag == Tag::ListTensor;
     }
 
-    utils::ArrayRef<Tensor>* toTensorList() const {
+    ArrayRef<Tensor>* toTensorList() const {
         if (!isIntList()) {
             error_with_message("EValue is not a Tensor List.");
         }
         return payload.as_tensor_list;
     }
 
-    // EValue(utils::ArrayRef<Scalar>* s) : tag(Tag::ListScalar) {
+    // EValue(ArrayRef<Scalar>* s) : tag(Tag::ListScalar) {
     //     payload.as_scalar_list = s;
     // }
 
@@ -216,7 +216,7 @@ struct EValue {
     //     return tag == Tag::ListScalar;
     // }
 
-    // utils::ArrayRef<Scalar>* toScalarList() const {
+    // ArrayRef<Scalar>* toScalarList() const {
     //     if (!isScalarList()) {
     //         error_with_message("EValue is not a Scalar List.");
     //     }

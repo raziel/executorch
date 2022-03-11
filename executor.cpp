@@ -33,6 +33,26 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       values_[i].tag = Tag::Bool;
       values_[i].payload.as_bool = serialization_value->val_as_Bool()->bool_val();
     } break;
+    case executorch::ValueUnion::IntList: {
+      values_[i].tag = Tag::ListInt;
+      const auto items = serialization_value->val_as_IntList()->items();
+      ArrayRef<int64_t> *a = new ArrayRef<int64_t>(items->data(), items->size());
+      values_[i].payload.as_int_list = a;
+    } break;
+    case executorch::ValueUnion::BoolList: {
+      values_[i].tag = Tag::ListBool;
+      const auto items = serialization_value->val_as_BoolList()->items();
+      // Flatbuffer uses uint_8 to store bool types, so a quick cast to from uint8_t* to bool* is needed
+      // TODO: is this safe? I think the standard is 0 is false and non 0 is true, so the simple cast is fine I think.
+      ArrayRef<bool> *a = new ArrayRef<bool>((bool*)items->data(), items->size());
+      values_[i].payload.as_bool_list = a;
+    } break;
+    case executorch::ValueUnion::DoubleList: {
+      values_[i].tag = Tag::ListDouble;
+      const auto items = serialization_value->val_as_DoubleList()->items();
+      ArrayRef<double> *a = new ArrayRef<double>(items->data(), items->size());
+      values_[i].payload.as_double_list = a;
+    } break;
     case executorch::ValueUnion::Tensor: {
       values_[i].tag = Tag::Tensor;
       auto s_tensor = serialization_value->val_as_Tensor();
@@ -51,6 +71,14 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
         t->data = new uint8_t[t->nbytes()];
       }
       values_[i].payload.as_tensor = t;
+    } break;
+    case executorch::ValueUnion::TensorList: {
+      // TODO requires String view;
+      error_with_message("TensorList not implemented");
+    } break;
+    case executorch::ValueUnion::String: {
+      // TODO requires String view;
+      error_with_message("String not implemented");
     } break;
     default: // TODO: support all types
       error_with_message("type not supported");
