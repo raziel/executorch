@@ -72,8 +72,8 @@ class Tensor {
     void* data = nullptr;
 
     Tensor() {}
-    Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr)
-    : dim_(dim), sizes_(sizes, dim), type_(type), data(data), strides_(strides)
+    Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr, int storage_offset = 0)
+    : dim_(dim), sizes_(sizes, dim), type_(type), data(data), strides_(strides), storage_offset_(storage_offset)
     {
       if (!data) {
         return;
@@ -107,9 +107,14 @@ class Tensor {
       return scalarTypeItemSizes[static_cast<int>(type_)];
     }
 
+    int storage_offset() const {
+      return storage_offset_;
+    }
+
     ArrayRef<int> sizes() {
       return sizes_;
     }
+
     const ArrayRef<int> sizes() const {
       return sizes_;
     }
@@ -119,6 +124,7 @@ class Tensor {
     ScalarType type_;
     int dim_ = 0;
     int nbytes_ = 0;
+    int storage_offset_ = 0;
     ArrayRef<int> sizes_;
     int* strides_ = nullptr;
     int numel_ = 0;

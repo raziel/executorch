@@ -59,7 +59,10 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           static_cast<ScalarType>(s_tensor->scalar_type()),
           s_tensor->sizes()->size(),
           const_cast<int *>(
-              s_tensor->sizes()->data()));
+              s_tensor->sizes()->data()),
+          nullptr,
+          nullptr,
+          s_tensor->storage_offset());
       if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
         auto buffer =
             program_->buffers()->GetMutableObject(s_tensor->buffer_index());
@@ -83,7 +86,10 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
         executor_tensors.emplace_back(static_cast<ScalarType>(s_tensor->scalar_type()),
           s_tensor->sizes()->size(),
           const_cast<int *>(
-              s_tensor->sizes()->data())
+              s_tensor->sizes()->data()),
+          nullptr,
+          nullptr,
+          s_tensor->storage_offset()
         );
 
         if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
