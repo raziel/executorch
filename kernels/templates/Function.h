@@ -2,15 +2,14 @@
 
 // ${generated_comment}
 
-${extra_includes}
+
+${static_dispatch_ops_headers}
 namespace at = torch::executor;
 
 namespace torch {
 namespace executor {
-namespace native {
 
-${native_function_declarations}
+${function_definitions}
 
-} // namespace native
 } // namespace executor
 } // namespace torch

@@ -224,5 +224,13 @@ struct EValue {
     // }
 };
 
+#define DEFINE_TO(T, method_name)                          \
+  template <>                                              \
+  inline T IValue::to<T>()&& {                             \
+    return static_cast<T>(std::move(*this).method_name()); \
+  }                                                        \
+
+DEFINE_TO(Tensor, toTensor);
+DEFINE_TO(Scalar, toScalar);
 } // namespace executor
 } // namespace torch
