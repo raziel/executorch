@@ -8,6 +8,7 @@
 **/cmake_install.cmake
 **/compile_commands.json
 **/install_manifest.txt
+*.pc
 Makefile
 
 # Compiled Object files
