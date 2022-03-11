@@ -65,7 +65,18 @@ class ArrayRef final {
 
   /// Construct an ArrayRef from a pointer and length.
   constexpr ArrayRef(const T* data, size_t length)
-      : Data(data), Length(length) {}
+      : Data(data), Length(length) {
+    /*
+     * Using `assert` in a `constexpr` is a C++14 extension.
+     * Ignore compiler warning for now.
+     */
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wc++14-extensions"
+
+    assert(Data != nullptr || Length == 0);
+
+    #pragma clang diagnostic pop
+  }
 
   /// Construct an ArrayRef from a range.
    ArrayRef(const T* begin, const T* end)
