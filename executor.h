@@ -1,5 +1,5 @@
 #include <schema/schema_generated.h>
-#include <core/tensor.h>
+#include <core/Tensor.h>
 #include <core/Evalue.h>
 #include <core/operator_registry.h>
 
