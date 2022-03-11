@@ -8,6 +8,7 @@
 #include <schema_generated.h>
 #include <unordered_map>
 #include <executor.h>
+#include <string>
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
@@ -386,5 +387,15 @@ TEST(ExecutorTest, EValueToScalar) {
   ASSERT_EQ(s.toInt(), 2);
 }
 
+void test_op(EValue *args) {}
+
+TEST(ExecutorTest, OpRegistration) {
+  registerOpsFunction("test", test_op);
+  Operator op("test_2", test_op);
+  registerOpsFunction(op);
+
+  ASSERT_TRUE(hasOpsFn("test"));
+  ASSERT_TRUE(hasOpsFn("test_2"));
+}
 } // namespace executor
 } // namespace torch

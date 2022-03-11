@@ -17,6 +17,10 @@ void registerOpsFunction(
   OpsFnTable()[name] = fn;
 }
 
+void registerOpsFunction(Operator& o) {
+  OpsFnTable()[o.name()] = o.op();
+}
+
 bool hasOpsFn(const std::string& name) {
   return OpsFnTable().count(name);
 }

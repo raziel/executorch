@@ -9,7 +9,7 @@ from collections import namedtuple, defaultdict
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 from codegen.api import meta, structured, unboxing
-from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup
+from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup, Expr, tensorT
 from codegen.api.unboxing import convert_arguments
 from codegen.context import method_with_native_function, native_function_manager
 from codegen.model import NativeFunction, DispatchKey, OperatorName, BackendMetadata, Location, BackendIndex, \
@@ -20,10 +20,10 @@ from codegen.api.translate import translate
 from codegen.utils import context, YamlLoader, make_file_manager, FileManager, mapMaybe, assert_never, Target, concatMap
 from codegen import dest
 
-
 _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
 
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+
 
 # A custom loader for YAML to let us also keep track of line numbers
 # of each entry in the YAML file
@@ -92,7 +92,6 @@ def static_dispatch_extra_headers(backend: Optional[BackendIndex], skip_tensor_i
         maybe_inl = ''
     return [f'#include <ATen/{dispatch_key}Functions{maybe_inl}.h>'
             for dispatch_key in static_dispatch_keys(backend)]
-
 
 
 def static_dispatch(
@@ -203,7 +202,6 @@ static C10_NOINLINE c10::TypedOperatorHandle<{name}::schema> create_{name}_typed
             assert_never(self.target)
 
 
-
 # Generates Functions.h, which provides the functional public C++ API,
 # and the scaffolding to call into the dispatcher from these functions.
 @dataclass(frozen=True)
@@ -229,7 +227,8 @@ class ComputeFunction:
             exprs = translate(sig.arguments(), target_sig.arguments())
             exprs_str = ', '.join([e.expr for e in exprs])
 
-            static_dispatch_block = static_dispatch(f, sig, method=False, backend_index=self.static_dispatch_backend_index)
+            static_dispatch_block = static_dispatch(f, sig, method=False,
+                                                    backend_index=self.static_dispatch_backend_index)
             if static_dispatch_block is None:
                 return f"""
 // aten::{f.func}
@@ -244,12 +243,12 @@ TORCH_API inline {sig.decl()} {{
     {static_dispatch_block}
 }}
 """
+
         result = generate_defn(False)
         if sig_group.faithful_signature is not None:
             result += generate_defn(True)
 
         return result
-
 
 
 # Generates TensorBody.h. This file provides the object-oriented (method-based)
@@ -292,7 +291,8 @@ class ComputeTensorMethod:
             exprs = translate(sig.arguments(), target_sig.arguments(), method=True)
             exprs_str = ', '.join([e.expr for e in exprs])
 
-            static_dispatch_block = static_dispatch(f, sig, method=True, backend_index=self.static_dispatch_backend_index)
+            static_dispatch_block = static_dispatch(f, sig, method=True,
+                                                    backend_index=self.static_dispatch_backend_index)
             if static_dispatch_block is None:
                 return f"""
 // aten::{f.func}
@@ -353,24 +353,18 @@ TORCH_API void {f.func.name.unambiguous_name()}(Stack & stack);
             # function call and push back to stack
             prefix = "self_base." if sig.method else "at::"
             translated_args = translate(binding_list, sig.arguments(), method=sig.method)
-            args_str = f"{arg_connector.join(e.expr for e in translated_args)}"
-            if len(f.func.returns) == 0:
-                ret_str = ""
-                push_str = ""
-            else:
-                ret_str = "auto result_ = "
-                push_str = """
-    pack(stack, std::move(result_));
-                """
+
+            def is_tensor(e: Expr) -> bool:
+                return e.type.cpp_type(strip_ref=True) == str(tensorT)
+
+            args_str = f"{arg_connector.join(('*' if is_tensor(e) else '') + e.expr for e in translated_args)}"
+
             return f"""
 // aten::{f.func}
 TORCH_API void {f.func.name.unambiguous_name()}(Stack & stack) {{
     {code_connector.join(code_list)}
 
-    drop(stack, {len(binding_list)});
-
-    {ret_str}{prefix}{sig.name()}({args_str});
-    {push_str}
+    {prefix}{sig.name()}({args_str});
 }}
 """
 
@@ -387,17 +381,12 @@ class ComputeCodegenUnboxedKernels:
 
         sig = sig_group.most_faithful_signature()
 
-        # escape double quote in schema, get rid of extra double quotes
-        schema = cpp_string(str(sig.func))[1:-1]
-
         return f"""
-OperatorGenerator(
-    TORCH_SELECTIVE_SCHEMA("aten::{schema}"),
+Operator(
+    "{sig.name()}",
     [](Stack & stack) {{
-        RECORD_FUNCTION("{sig.name()}", std::vector<c10::IValue>());
         at::unboxing::{unboxing.name(f)}(stack);
-    }},
-    aliasAnalysisFromSchema()
+    }}
 ),
 """
 
@@ -437,113 +426,6 @@ def gen_unboxing(
         sharded_keys={"unboxed_ops"},
     )
 
-
-# Generates MetaFunctions.h
-def compute_meta_function_declaration(g: NativeFunctionsGroup) -> Optional[str]:
-    if not g.structured:
-        return None
-    with native_function_manager(g.out):
-        name = meta.name(g)
-        args = structured.meta_arguments(g)
-        args_str = ', '.join(a.decl() for a in args)
-        parent_class = g.out.structured_inherits
-        if parent_class is None:
-            parent_class = "at::impl::MetaBase"
-        meta_return = "void"
-        precomputed = g.out.precomputed if g.structured else None
-
-        if precomputed:
-            # Generate the template declaration with one bool parameter for each
-            # precomputed element. Each parameter is true if the corresponding (in
-            # terms of position) precomputed element has been set.
-            precomputed_values = [*precomputed.replace.values(), precomputed.add]
-            precomputed_elements = [elem for replace_list in precomputed_values for elem in replace_list]
-            precomputed_template_parameters = [elem.name.upper() for elem in precomputed_elements]
-            precomputed_template_params_str = ", ".join(f"bool {param} = false" for param in precomputed_template_parameters)
-            precompute_template_decl = f"template <{precomputed_template_params_str}>"
-
-            # Generate a string containing declarations of all precomputed elements.
-            precomputed_elements_with_cpp_types = [
-                structured.argument_type(elem, binds=elem.name)
-                for elem in precomputed_elements
-            ]
-
-            precomputed_elements_decl = ";\n".join(
-                f"{elem.cpp_type(strip_ref=True)} {elem.name}" for elem in precomputed_elements_with_cpp_types
-            )
-
-            # Generate "setter" methods for each precomputed element. Each method will return
-            # a new instance of precompute_out with the template parameter that corresponds to
-            # the member set by the method to true (to indicate that it has been set).
-            setter_methods = []
-            for i, elem in enumerate(precomputed_elements):
-                # Generate the signature. The return type will be the same
-                # as the type of `this` but with the template parameter
-                # corresponding to the element set by this method set to true.
-                # The assert generated below will ensure that this template
-                # parameter is false on the type of `this`.
-                return_ty_templates = ", ".join(
-                    precomputed_template_parameters[:i] + ["true"] + precomputed_template_parameters[i + 1:]
-                )
-                return_ty = f"precompute_out<{return_ty_templates}>"
-                elem_cpp_ty = precomputed_elements_with_cpp_types[i].cpp_type(strip_ref=True)
-                signature = f"{return_ty} set_{elem.name}({elem_cpp_ty} value)"
-
-                # Generate an assert which checks that the
-                # template parameter corresponding to the precomputed
-                # element that is set by this method is false on the
-                # class corresponding to the object that `this` points to.
-                # This ensures that each element can be set only once.
-                assert_msg = f"\"{precomputed_elements[i].name} already set\""
-                assert_stmt = f"static_assert({precomputed_template_parameters[i]} == false, {assert_msg});"
-
-                # Generate the new object construction block. All state
-                # except the element that this method sets is copied from the
-                # object that `this` points to. The value for the element that
-                # the method sets is taken from a method parameter.
-                construction_stmts = []
-                construction_stmts.append(f"{return_ty} ret;")
-
-                for j, elem in enumerate(precomputed_elements):
-                    if i == j:
-                        construction_stmts.append(f"ret.{elem.name} = value;")
-                    else:
-                        construction_stmts.append(f"ret.{elem.name} = this->{elem.name};")
-
-                construction_stmts.append("return ret;")
-                construction_block = "\n".join(construction_stmts)
-
-                setter_methods.append(f"""
-                    {signature} {{
-                        {assert_stmt}
-                        {construction_block}
-                    }}
-                """)
-            setter_methods_decl = "\n".join(setter_methods)
-
-            # Meta should return an instance of the struct containing the precomputed elements.
-            meta_return_template_params = ", ".join(["true"] * len(precomputed_template_parameters))
-            # This typedef (actually a using statement) is needed so that TORCH_META_FUNC can reuse the return
-            # type (which has a variable number of template parameters).
-            meta_return_typedef = f"using meta_return_ty = precompute_out <{meta_return_template_params}>;"
-            meta_return = "meta_return_ty"
-            precomputed_decl = f"""
-                {precompute_template_decl}
-                struct TORCH_API precompute_out {{
-                    {setter_methods_decl}
-                    {precomputed_elements_decl};
-            }};"""
-        else:
-            meta_return_typedef = ""
-            precomputed_decl = ""
-
-        return f"""\
-struct TORCH_API structured_{name} : public {parent_class} {{
-    {precomputed_decl}
-    {meta_return_typedef}
-    {meta_return} meta({args_str});
-}};
-"""
 
 def parse_native_yaml_struct(es: object, path: str = "<stdin>") -> ParsedYaml:
     assert isinstance(es, list)
@@ -634,12 +516,21 @@ def gen_per_operator_headers(
     for fn in native_functions:
         functions_by_root_name[fn.root_name].append(fn)
 
-    grouped_functions_by_root_name: Dict[str, List[Union[NativeFunction, NativeFunctionsGroup]]] = defaultdict(lambda: [])
+    grouped_functions_by_root_name: Dict[str, List[Union[NativeFunction, NativeFunctionsGroup]]] = defaultdict(
+        lambda: [])
     for group in grouped_native_functions:
         name = group.root_name
         grouped_functions_by_root_name[name].append(group)
 
     for name, functions in functions_by_root_name.items():
+        ops_fm.write_with_template(
+            f'{name}.h', 'Function.h', lambda: {
+                'static_dispatch_ops_headers': list(mapMaybe(
+                    lambda fn: static_dispatch_ops_header(fn, backend_index=static_dispatch_idx),
+                    functions)),
+                'function_definitions': list(mapMaybe(ComputeFunction(
+                    static_dispatch_backend_index=static_dispatch_idx), functions)),
+            })
 
         grouped_functions = grouped_functions_by_root_name.get(name, [])
         structured_functions = [fn for fn in grouped_functions
@@ -670,7 +561,6 @@ def gen_per_operator_headers(
                 f'#include <ATen/ops/{name}{suffix}.h>'
                 for name in sorted(functions_by_root_name.keys())
             ],
-            f'{category}_declarations': [],
         })
 
     for dispatch_key in dispatch_keys:
@@ -703,7 +593,6 @@ def gen_per_operator_headers(
                     'dispatch_namespace': dispatch_namespace,
                     'dispatch_namespaced_declarations': declarations,
                 })
-
 
 
 def gen_source_files(
@@ -752,7 +641,8 @@ def gen_source_files(
                     # grouped but not be structured, and then you need to check
                     # each individual piece, as they may have manual dispatch
                     # entries.
-                    elif isinstance(g, NativeFunctionsGroup) and any(backend_index.has_kernel(fn) for fn in g.functions()):
+                    elif isinstance(g, NativeFunctionsGroup) and any(
+                            backend_index.has_kernel(fn) for fn in g.functions()):
                         is_registered = True
                     # TODO: this condition is a bit questionable
                     elif g.structured and dispatch_key in (DispatchKey.Meta, DispatchKey.CompositeExplicitAutograd):
@@ -780,20 +670,16 @@ def gen_source_files(
         backend_index = backend_indices[dispatch_key]
         dispatch_namespace = str(dispatch_key).lower()
         fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
-            'extra_cuda_headers': extra_cuda_headers if is_cuda_dispatch_key(dispatch_key) else '',
-            'external_backend_headers': '',
-            'dispatch_headers': dest.gen_registration_headers(backend_index, per_operator_headers, rocm),
             'ops_headers': operator_headers(),
             'DispatchKey': dispatch_key,
             'dispatch_namespace': dispatch_key.lower(),
-            'dispatch_helpers': dest.gen_registration_helpers(backend_index),
             'dispatch_namespaced_definitions': list(concatMap(
                 dest.RegisterDispatchKey(
                     backend_index,
                     Target.NAMESPACED_DEFINITION,
                     selector,
                     rocm=rocm,
-                    cpp_namespace='at::native',
+                    cpp_namespace='torch::executor',
                     class_method_name=None),
                 grouped_native_functions
             )),
@@ -803,7 +689,7 @@ def gen_source_files(
                     Target.ANONYMOUS_DEFINITION,
                     selector,
                     rocm=rocm,
-                    cpp_namespace='at::native',
+                    cpp_namespace='torch::executor',
                     class_method_name=None),
                 grouped_native_functions
             )),
@@ -813,7 +699,7 @@ def gen_source_files(
                     Target.REGISTRATION,
                     selector,
                     rocm=rocm,
-                    cpp_namespace='at::native',
+                    cpp_namespace='torch::executor',
                     class_method_name=None),
                 grouped_native_functions
             )),
@@ -913,7 +799,6 @@ def gen_headers(
             lambda fn: static_dispatch_ops_header(fn, backend_index=static_dispatch_idx),
             [fn for fn in native_functions if Variant.method in fn.variants]))
 
-
     core_fm.write('TensorBody.h', lambda: {
         'static_dispatch_ops_headers': (
             static_dispatch_method_headers() if per_operator_headers
@@ -923,7 +808,6 @@ def gen_headers(
         'tensor_method_definitions': list(mapMaybe(ComputeTensorMethod(
             target=Target.DEFINITION, static_dispatch_backend_index=static_dispatch_idx), native_functions)),
     })
-
 
     def gen_aten_interned_strings() -> Dict[str, str]:
         attrs = set()  # All function argument names
@@ -952,6 +836,7 @@ def gen_headers(
         }
 
     core_fm.write('aten_interned_strings.h', gen_aten_interned_strings)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate operator source files')

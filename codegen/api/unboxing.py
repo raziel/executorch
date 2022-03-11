@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 from codegen.api import cpp
-from codegen.api.types import Binding, CType, CppSignatureGroup
+from codegen.api.types import Binding, CType, CppSignatureGroup, tensorT
 from codegen.model import (
     Argument,
     NativeFunction,
@@ -105,8 +105,8 @@ def name(f: NativeFunction) -> str:
 def convert_arguments(f: NativeFunction) -> Tuple[List[Binding], List[str]]:
     # we need the 'self' argument so method needs to be False
     args = CppSignatureGroup.from_native_function(f, method=False).most_faithful_signature().arguments()
-    code_list = [f"c10::IValue {args[i].name} = std::move(peek(stack, {i}, {len(args)}));" for i in
-                 range(len(args))] + [""]
+    code_list = [f"at::EValue {args[i].name} = stack[{i}];" for i in
+                 range(len(args))]
     binding_list = []
     for i, arg in enumerate(args):
         # expecting only Argument
@@ -143,7 +143,9 @@ def argumenttype_ivalue_convert(t: Type, arg_name: str, *, mutable: bool = False
 
 
 def _gen_code_base_type(arg_name: str, out_name: str, ctype: CType) -> Tuple[List[str], List[str]]:
-    return [f"{ctype.cpp_type(strip_ref=True)} {out_name} = {arg_name}.to<{ctype.cpp_type(strip_ref=True)}>();"], []
+    def is_tensor(t: CType) -> bool:
+        return t.cpp_type(strip_ref=True) == str(tensorT)
+    return [f"{ctype.cpp_type(strip_ref=True) + ('*' if is_tensor(ctype) else '')} {out_name} = {arg_name}.to<{ctype.cpp_type(strip_ref=True)}>();"], []
 
 
 def _gen_code_optional_type(arg_name: str, out_name: str, t: OptionalType, ctype: CType) -> Tuple[List[str], List[str]]:

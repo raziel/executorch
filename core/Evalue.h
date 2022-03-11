@@ -1,5 +1,5 @@
 #pragma once
-#include <Tensor.h>
+#include <tensor.h>
 #include <Scalar.h>
 #include <error_message.h>
 #include <ArrayRef.h>
@@ -222,7 +222,23 @@ struct EValue {
     //     }
     //     return payload.as_scalar_list;
     // }
+    template <typename T>
+    T to() &&;
+
+    template <typename T>
+    T* to() &&;
 };
 
+#define DEFINE_TO(T, method_name)                          \
+  template <>                                              \
+  inline T EValue::to<T>()&& {                             \
+    return static_cast<T>(std::move(*this).method_name()); \
+  }                                                        \
+
+template <>
+inline Tensor* EValue::to<Tensor>()&& {
+  return (*this).toTensor();
+}
+DEFINE_TO(Scalar, toScalar);
 } // namespace executor
 } // namespace torch
