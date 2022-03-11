@@ -3,6 +3,7 @@
 #include <Evalue.h>
 #include <functional>
 #include <vector>
+#include <string>
 
 namespace torch {
 namespace executor {
@@ -14,7 +15,7 @@ struct Operator {
  std::string name_;
 
  public:
-  Operator(OpFunction func, std::string name): op_(func), name_(name) {}
+  Operator(std::string name, OpFunction func): op_(func), name_(name) {}
   const std::string name() const {
     return name_;
   }
@@ -27,7 +28,7 @@ void registerOpsFunction(
     const std::string& name,
     const OpFunction& fn);
 
-void registerOpsFunction(Operator o);
+void registerOpsFunction(Operator& o);
 
 bool hasOpsFn(const std::string& name);
 

@@ -1,4 +1,5 @@
 #include <core/operator_registry.h>
+#include <core/Scalar.h>
 #include <string>
 
 namespace torch {
@@ -23,7 +24,7 @@ void add_kernel(Tensor &a, Tensor &b, Scalar &scalar, Tensor &c) {
   }
 }
 
-void mul_kernel(Tensor &a, Tensor &b, Scalar &scalar, Tensor &c) {
+void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
   auto data_a = static_cast<int *>(a.data);
   auto data_b = static_cast<int *>(b.data);
   auto data_c = static_cast<int *>(c.data);
@@ -41,7 +42,7 @@ void mul_op(EValue *args) {
   Tensor *a = args[0].toTensor();
   Tensor *b = args[1].toTensor();
   Tensor *c = args[2].toTensor();
-  mul_kernel(*a, *b, *c);
+  native::mul_kernel(*a, *b, *c);
 }
 
 // Code-generated glue unbox wrapper
@@ -50,7 +51,8 @@ void add_op(EValue *args) {
   Tensor *a = args[0].toTensor();
   Tensor *b = args[1].toTensor();
   Tensor *c = args[2].toTensor();
-  add_kernel(*a, *b, *c);
+  Scalar s = Scalar();
+  native::add_kernel(*a, *b, s, *c);
 }
 
 static const std::vector<op_fn_register> op_reg{
