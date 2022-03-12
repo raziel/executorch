@@ -1,7 +1,8 @@
 #pragma once
 
 // ${generated_comment}
-
+#include <tensor.h>
+#include <macros.h>
 
 ${static_dispatch_ops_headers}
 namespace at = torch::executor;
