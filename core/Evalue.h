@@ -225,8 +225,6 @@ struct EValue {
     template <typename T>
     T to() &&;
 
-    template <typename T>
-    T* to() &&;
 };
 
 #define DEFINE_TO(T, method_name)                          \
@@ -236,9 +234,9 @@ struct EValue {
   }                                                        \
 
 template <>
-inline Tensor* EValue::to<Tensor>()&& {
-  return (*this).toTensor();
+inline Tensor EValue::to<Tensor>()&& {
+  return *(std::move(*this).toTensor());
 }
-DEFINE_TO(Scalar, toScalar);
+DEFINE_TO(Scalar, toScalar)
 } // namespace executor
 } // namespace torch
