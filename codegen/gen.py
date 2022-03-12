@@ -8,8 +8,8 @@ import yaml
 from collections import namedtuple, defaultdict
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
-from codegen.api import meta, structured, unboxing
-from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup, Expr, tensorT
+from codegen.api import unboxing
+from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup
 from codegen.api.unboxing import convert_arguments
 from codegen.context import method_with_native_function, native_function_manager
 from codegen.model import NativeFunction, DispatchKey, OperatorName, BackendMetadata, Location, BackendIndex, \
@@ -80,7 +80,7 @@ def static_dispatch_ops_header(
         return None
 
     dispatch_key = get_static_dispatch_backend(f, backend_index)
-    return (f'#include <ATen/ops/{f.root_name}_{dispatch_key.lower()}_dispatch.h>'
+    return (f'#include <ops/{f.root_name}_{dispatch_key.lower()}_dispatch.h>'
             if dispatch_key is not None else None)
 
 
@@ -337,7 +337,7 @@ class ComputeUnboxingFunctions:
             # (2) Under the hood it calls C++ API.
             return f"""
 // aten::{f.func}
-TORCH_API void {f.func.name.unambiguous_name()}(Stack & stack);
+void {f.func.name.unambiguous_name()}(EValue* stack);
 """
         else:
             sig_group = CppSignatureGroup.from_native_function(
@@ -354,14 +354,11 @@ TORCH_API void {f.func.name.unambiguous_name()}(Stack & stack);
             prefix = "self_base." if sig.method else "at::"
             translated_args = translate(binding_list, sig.arguments(), method=sig.method)
 
-            def is_tensor(e: Expr) -> bool:
-                return e.type.cpp_type(strip_ref=True) == str(tensorT)
-
-            args_str = f"{arg_connector.join(('*' if is_tensor(e) else '') + e.expr for e in translated_args)}"
+            args_str = f"{arg_connector.join(e.expr for e in translated_args)}"
 
             return f"""
 // aten::{f.func}
-TORCH_API void {f.func.name.unambiguous_name()}(Stack & stack) {{
+void {f.func.name.unambiguous_name()}(EValue* stack) {{
     {code_connector.join(code_list)}
 
     {prefix}{sig.name()}({args_str});
@@ -384,7 +381,7 @@ class ComputeCodegenUnboxedKernels:
         return f"""
 Operator(
     "{sig.name()}",
-    [](Stack & stack) {{
+    [](EValue* stack) {{
         at::unboxing::{unboxing.name(f)}(stack);
     }}
 ),
@@ -504,7 +501,6 @@ def gen_per_operator_headers(
         selector: SelectiveBuilder,
         backend_indices: Dict[DispatchKey, BackendIndex],
         cpu_fm: FileManager,
-        cuda_fm: FileManager,
         ops_fm: FileManager,
         functions_keys: Set[DispatchKey],
         dispatch_keys: Sequence[DispatchKey],
@@ -558,7 +554,7 @@ def gen_per_operator_headers(
         cpu_fm.write(f'{category}.h', lambda: {
             'static_dispatch_extra_headers': [],
             f'{category}_includes': [
-                f'#include <ATen/ops/{name}{suffix}.h>'
+                f'#include <build/generated/ops/{name}{suffix}.h>'
                 for name in sorted(functions_by_root_name.keys())
             ],
         })
@@ -604,8 +600,6 @@ def gen_source_files(
         backend_indices: Dict[DispatchKey, BackendIndex],
         core_fm: FileManager,
         cpu_fm: FileManager,
-        cpu_vec_fm: FileManager,
-        cuda_fm: FileManager,
         dispatch_keys: Sequence[DispatchKey],
         functions_keys: Set[DispatchKey],
         rocm: bool,
@@ -626,7 +620,7 @@ def gen_source_files(
 #include <ATen/hip/HIPContext.h>'''
 
     for dispatch_key in dispatch_keys:
-        fm = cuda_fm if is_cuda_dispatch_key(dispatch_key) else cpu_fm
+        fm = cpu_fm
 
         if per_operator_headers:
             def operator_headers() -> List[str]:
@@ -650,21 +644,21 @@ def gen_source_files(
                     if not is_registered:
                         continue
 
-                    headers.append(f"#include <ATen/ops/{g.root_name}_native.h>")
+                    headers.append(f"#include <ops/{g.root_name}_native.h>")
                     if dispatch_key == DispatchKey.CompositeExplicitAutograd:
-                        headers.append(f"#include <ATen/ops/{g.root_name}.h>")
+                        headers.append(f"#include <ops/{g.root_name}.h>")
                     if dispatch_key in functions_keys:
                         headers.append(
-                            f"#include <ATen/ops/{g.root_name}_{dispatch_namespace}_dispatch.h>")
+                            f"#include <ops/{g.root_name}_{dispatch_namespace}_dispatch.h>")
 
                 return sorted(set(headers))
         else:
             def operator_headers() -> List[str]:
-                headers = ["#include <ATen/NativeFunctions.h>"]
+                headers = ["#include <build/generated/NativeFunctions.h>"]
                 if dispatch_key == DispatchKey.CompositeExplicitAutograd:
-                    headers.append("#include <ATen/Functions.h>")
+                    headers.append("#include <build/generated/Functions.h>")
                 if dispatch_key in functions_keys:
-                    headers.append(f"#include <ATen/{dispatch_key!s}Functions.h>")
+                    headers.append(f"#include <build/generated/{dispatch_key!s}Functions.h>")
                 return headers
 
         backend_index = backend_indices[dispatch_key]
@@ -770,7 +764,6 @@ def gen_headers(
         backend_indices: Dict[DispatchKey, BackendIndex],
         core_fm: FileManager,
         cpu_fm: FileManager,
-        cuda_fm: FileManager,
         ops_fm: FileManager,
         dispatch_keys: Sequence[DispatchKey],
         functions_keys: Set[DispatchKey],
@@ -785,7 +778,6 @@ def gen_headers(
             selector=selector,
             backend_indices=backend_indices,
             cpu_fm=cpu_fm,
-            cuda_fm=cuda_fm,
             ops_fm=ops_fm,
             dispatch_keys=dispatch_keys,
             functions_keys=functions_keys,
@@ -847,7 +839,7 @@ def main() -> None:
         default='kernels')
     parser.add_argument(
         '-d', '--install_dir', help='output directory',
-        default='build/aten/src/ATen')
+        default='build/generated')
     parser.add_argument(
         '-o',
         '--output-dependencies',
@@ -892,7 +884,13 @@ def main() -> None:
         action='store_true',
         help='force it to generate schema-only registrations for all ops, including'
              'those that are not listed on --op_registration_whitelist')
-
+    parser.add_argument(
+        '--generate',
+        type=str,
+        nargs='*',
+        choices=['headers', 'sources'],
+        default=['headers', 'sources'],
+        help='Generate only a subset of files')
     options = parser.parse_args()
     native_yaml_path = os.path.join(options.source_path, 'functions.yaml')
     parsed_yaml = parse_native_yaml(native_yaml_path)
@@ -905,8 +903,6 @@ def main() -> None:
 
     core_fm = make_file_manager(options=options, install_dir=core_install_dir)
     cpu_fm = make_file_manager(options=options)
-    cpu_vec_fm = make_file_manager(options=options)
-    cuda_fm = make_file_manager(options=options)
     ops_fm = make_file_manager(options=options, install_dir=ops_install_dir)
     grouped_native_functions = get_grouped_native_functions(native_functions)
     structured_native_functions = [g for g in grouped_native_functions
@@ -930,40 +926,54 @@ def main() -> None:
         options.op_selection_yaml_path,
     )
 
-    gen_headers(
-        native_functions=native_functions,
-        grouped_native_functions=grouped_native_functions,
-        structured_native_functions=structured_native_functions,
-        static_dispatch_idx=static_dispatch_idx,
-        selector=selector,
-        backend_indices=backend_indices,
-        core_fm=core_fm,
-        cpu_fm=cpu_fm,
-        cuda_fm=cuda_fm,
-        ops_fm=ops_fm,
-        dispatch_keys=dispatch_keys,
-        functions_keys=functions_keys,
-        rocm=options.rocm,
-        per_operator_headers=options.per_operator_headers,
-    )
-    gen_source_files(
-        native_functions=native_functions,
-        grouped_native_functions=grouped_native_functions,
-        structured_native_functions=structured_native_functions,
-        selector=selector,
-        backend_indices=backend_indices,
-        core_fm=core_fm,
-        cpu_fm=cpu_fm,
-        cpu_vec_fm=cpu_vec_fm,
-        cuda_fm=cuda_fm,
-        dispatch_keys=dispatch_keys,
-        functions_keys=functions_keys,
-        rocm=options.rocm,
-        force_schema_registration=options.force_schema_registration,
-        per_operator_headers=options.per_operator_headers,
-        skip_dispatcher_op_registration=options.skip_dispatcher_op_registration,
-    )
-    gen_unboxing(native_functions=native_functions, cpu_fm=cpu_fm)
+    if 'headers' in options.generate:
+        gen_headers(
+            native_functions=native_functions,
+            grouped_native_functions=grouped_native_functions,
+            structured_native_functions=structured_native_functions,
+            static_dispatch_idx=static_dispatch_idx,
+            selector=selector,
+            backend_indices=backend_indices,
+            core_fm=core_fm,
+            cpu_fm=cpu_fm,
+            ops_fm=ops_fm,
+            dispatch_keys=dispatch_keys,
+            functions_keys=functions_keys,
+            rocm=options.rocm,
+            per_operator_headers=options.per_operator_headers,
+        )
+
+    if 'sources' in options.generate:
+        gen_source_files(
+            native_functions=native_functions,
+            grouped_native_functions=grouped_native_functions,
+            structured_native_functions=structured_native_functions,
+            selector=selector,
+            backend_indices=backend_indices,
+            core_fm=core_fm,
+            cpu_fm=cpu_fm,
+            dispatch_keys=dispatch_keys,
+            functions_keys=functions_keys,
+            rocm=options.rocm,
+            force_schema_registration=options.force_schema_registration,
+            per_operator_headers=options.per_operator_headers,
+            skip_dispatcher_op_registration=options.skip_dispatcher_op_registration,
+        )
+        gen_unboxing(native_functions=native_functions, cpu_fm=cpu_fm)
+
+    if options.output_dependencies:
+        depfile_path = pathlib.Path(options.output_dependencies).resolve()
+        depfile_name = depfile_path.name
+        depfile_stem = depfile_path.stem
+
+        for fm, prefix in [
+            (cpu_fm, ""),
+            (core_fm, "core_"),
+            (ops_fm, "ops_"),
+        ]:
+            varname = prefix + depfile_stem
+            path = depfile_path.parent / (prefix + depfile_name)
+            fm.write_outputs(varname, str(path))
 
 
 if __name__ == '__main__':

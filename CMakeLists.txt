@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 # set(CMAKE_VERBOSE_MAKEFILE 1)
+include(codegen/Codegen.cmake)
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to Release, for debug builds use"
     "'-DCMAKE_BUILD_TYPE=Debug'.")
@@ -51,7 +52,7 @@ add_library(executorch SHARED
     ${EXECUTORCH_SOURCE_DIR}/core/operator_registry.cpp
     ${EXECUTORCH_SOURCE_DIR}/kernels/demo_operator_kernels.cpp
 )
-add_dependencies(executorch schema_header)
+add_dependencies(executorch schema_header GEN_TARGET)
 set_target_properties(executorch PROPERTIES
     OUTPUT_NAME executorch
     VERSION ${PROJECT_VERSION}
@@ -68,6 +69,7 @@ target_include_directories(executorch
   PUBLIC
     ${EXECUTORCH_INCLUDE_DIRS}
 )
+
 install(TARGETS executorch
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
