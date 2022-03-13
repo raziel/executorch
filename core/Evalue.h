@@ -230,7 +230,8 @@ struct EValue {
     T to() &&;
 
     template <typename T>
-    typename ivalue_to_const_ref_overload_return<T>::type to() const&;
+    typename evalue_to_const_ref_overload_return<T>::type to() const&;
+
 };
 
 #define DEFINE_TO(T, method_name)                          \

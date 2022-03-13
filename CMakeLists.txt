@@ -52,6 +52,7 @@ add_library(executorch SHARED
     ${EXECUTORCH_SOURCE_DIR}/core/operator_registry.cpp
     ${EXECUTORCH_SOURCE_DIR}/kernels/demo_operator_kernels.cpp
 )
+
 add_dependencies(executorch schema_header)
 
 if(APPLE)
@@ -66,6 +67,7 @@ target_link_libraries(executorch PUBLIC
         GEN_TARGET
         ${link_flag_2}
 )
+
 set_target_properties(executorch PROPERTIES
     OUTPUT_NAME executorch
     VERSION ${PROJECT_VERSION}
