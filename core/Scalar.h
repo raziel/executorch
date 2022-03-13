@@ -10,7 +10,9 @@ namespace executor {
 class Scalar {
   public:
     Scalar() : Scalar(int64_t(0)) {}
-
+    Scalar(int val) : tag(Tag::Int) {
+        v.as_int = val;
+    }
     Scalar(int64_t val) : tag(Tag::Int) {
         v.as_int = val;
     }
