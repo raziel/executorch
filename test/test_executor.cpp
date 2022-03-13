@@ -317,11 +317,11 @@ TEST(ExecutorTest, Registry) {
 }
 
 TEST(ExecutorTest, ArrayRef) {
-  utils::IntArrayRef foo(1);
+  IntArrayRef foo(1);
   ASSERT_EQ(foo[0], 1);
   int64_t* bar = new int64_t[1];
   size_t length = 1;
-  utils::IntArrayRef bap(bar, length);
+  IntArrayRef bap(bar, length);
   ASSERT_EQ(sizeof(bap), 16);
 }
 

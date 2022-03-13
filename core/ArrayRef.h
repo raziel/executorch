@@ -22,7 +22,6 @@
 
 namespace torch {
 namespace executor {
-namespace utils {
 
 /// ArrayRef - Represent a constant reference to an array (0 or more elements
 /// consecutively in memory), i.e. a start pointer and a length.  It allows
@@ -269,42 +268,40 @@ ArrayRef<T> makeArrayRef(const T (&Arr)[N]) {
 }
 
 // WARNING: Template instantiation will NOT be willing to do an implicit
-// conversions to get you to an utils::ArrayRef, which is why we need so
+// conversions to get you to an ArrayRef, which is why we need so
 // many overloads.
 
 template <typename T>
-bool operator==(utils::ArrayRef<T> a1, utils::ArrayRef<T> a2) {
+bool operator==(ArrayRef<T> a1, ArrayRef<T> a2) {
   return a1.equals(a2);
 }
 
 template <typename T>
-bool operator!=(utils::ArrayRef<T> a1, utils::ArrayRef<T> a2) {
+bool operator!=(ArrayRef<T> a1, ArrayRef<T> a2) {
   return !a1.equals(a2);
 }
 
 template <typename T>
-bool operator==(const std::vector<T>& a1, utils::ArrayRef<T> a2) {
-  return utils::ArrayRef<T>(a1).equals(a2);
+bool operator==(const std::vector<T>& a1, ArrayRef<T> a2) {
+  return ArrayRef<T>(a1).equals(a2);
 }
 
 template <typename T>
-bool operator!=(const std::vector<T>& a1, utils::ArrayRef<T> a2) {
-  return !utils::ArrayRef<T>(a1).equals(a2);
+bool operator!=(const std::vector<T>& a1, ArrayRef<T> a2) {
+  return !ArrayRef<T>(a1).equals(a2);
 }
 
 template <typename T>
-bool operator==(utils::ArrayRef<T> a1, const std::vector<T>& a2) {
-  return a1.equals(utils::ArrayRef<T>(a2));
+bool operator==(ArrayRef<T> a1, const std::vector<T>& a2) {
+  return a1.equals(ArrayRef<T>(a2));
 }
 
 template <typename T>
-bool operator!=(utils::ArrayRef<T> a1, const std::vector<T>& a2) {
-  return !a1.equals(utils::ArrayRef<T>(a2));
+bool operator!=(ArrayRef<T> a1, const std::vector<T>& a2) {
+  return !a1.equals(ArrayRef<T>(a2));
 }
 
 using IntArrayRef = ArrayRef<int64_t>;
 
-
-} // utils
 } // executor
 } // torch

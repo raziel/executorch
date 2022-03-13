@@ -1,5 +1,6 @@
 #include "executor.h"
 #include <core/instruction.h>
+#include <vector> // used for Tensor List initialization to make it simple, can be replaced when memory is more planned out
 
 namespace torch {
 namespace executor {
@@ -33,6 +34,23 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       values_[i].tag = Tag::Bool;
       values_[i].payload.as_bool = serialization_value->val_as_Bool()->bool_val();
     } break;
+    case executorch::ValueUnion::IntList: {
+      values_[i].tag = Tag::ListInt;
+      const auto items = serialization_value->val_as_IntList()->items();
+      values_[i].payload.as_int_list = new ArrayRef<int64_t>(items->data(), items->size());
+    } break;
+    case executorch::ValueUnion::BoolList: {
+      values_[i].tag = Tag::ListBool;
+      const auto items = serialization_value->val_as_BoolList()->items();
+      // Flatbuffer uses uint_8 to store bool types, so a quick cast to from uint8_t* to bool* is needed
+      // TODO: is this safe? I think the standard is 0 is false and non 0 is true, so the simple cast is fine I think.
+      values_[i].payload.as_bool_list = new ArrayRef<bool>((bool*)items->data(), items->size());
+    } break;
+    case executorch::ValueUnion::DoubleList: {
+      values_[i].tag = Tag::ListDouble;
+      const auto items = serialization_value->val_as_DoubleList()->items();
+      values_[i].payload.as_double_list = new ArrayRef<double>(items->data(), items->size());
+    } break;
     case executorch::ValueUnion::Tensor: {
       values_[i].tag = Tag::Tensor;
       auto s_tensor = serialization_value->val_as_Tensor();
@@ -41,7 +59,10 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           static_cast<ScalarType>(s_tensor->scalar_type()),
           s_tensor->sizes()->size(),
           const_cast<int *>(
-              s_tensor->sizes()->data()));
+              s_tensor->sizes()->data()),
+          nullptr,
+          nullptr,
+          s_tensor->storage_offset());
       if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
         auto buffer =
             program_->buffers()->GetMutableObject(s_tensor->buffer_index());
@@ -51,6 +72,43 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
         t->data = new uint8_t[t->nbytes()];
       }
       values_[i].payload.as_tensor = t;
+    } break;
+    case executorch::ValueUnion::TensorList: {
+      values_[i].tag = Tag::ListTensor;
+
+      // get list of serialization tensors and allocate storage for executor tensors
+      auto s_tensor_list = serialization_value->val_as_TensorList()->items();
+      // TODO replace std::vector with better allocation system once we have it set up
+      std::vector<Tensor> executor_tensors(s_tensor_list->size());
+
+      // for each serialization (executorch) tensor create an executor tensor and place it in the array
+      for (auto s_tensor = s_tensor_list->begin(); s_tensor != s_tensor_list->end(); s_tensor_list++)  {
+        executor_tensors.emplace_back(static_cast<ScalarType>(s_tensor->scalar_type()),
+          s_tensor->sizes()->size(),
+          const_cast<int *>(
+              s_tensor->sizes()->data()),
+          nullptr,
+          nullptr,
+          s_tensor->storage_offset()
+        );
+
+        if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
+          auto buffer =
+              program_->buffers()->GetMutableObject(s_tensor->buffer_index());
+          executor_tensors[i].data = static_cast<void *>(buffer->mutable_data()->data());
+        }
+        else { // TODO: init RW memory pools and do pointer mapping
+          executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];
+        };
+
+        i++;
+      }
+
+      values_[i].payload.as_tensor_list = new ArrayRef<Tensor>(executor_tensors.data(), s_tensor_list->size());;
+    } break;
+    case executorch::ValueUnion::String: {
+      // TODO requires String view;
+      error_with_message("String not implemented");
     } break;
     default: // TODO: support all types
       error_with_message("type not supported");

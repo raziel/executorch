@@ -1,6 +1,8 @@
 #pragma once
 
 // ${generated_comment}
+#include <tensor.h>
+#include <macros.h>
 
 ${extra_includes}
 namespace at = torch::executor;

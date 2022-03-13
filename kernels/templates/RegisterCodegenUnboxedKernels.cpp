@@ -1,6 +1,6 @@
 #include <core/operator_registry.h>
 
-#include <ATen/UnboxingFunctions.h>
+#include <build/generated/UnboxingFunctions.h>
 
 // ${generated_comment}
 
@@ -18,7 +18,7 @@ namespace exectuor {
 
 namespace {
 
-RegisterOperators reg({
+static RegisterOperators reg({
     // Generated operators
     ${unboxed_ops}
 });

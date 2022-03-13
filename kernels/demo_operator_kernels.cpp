@@ -38,25 +38,26 @@ void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
 }
 } // namespace native
 
-void mul_op(EValue *args) {
-  Tensor *a = args[0].toTensor();
-  Tensor *b = args[1].toTensor();
-  Tensor *c = args[2].toTensor();
-  native::mul_kernel(*a, *b, *c);
-}
-
-// Code-generated glue unbox wrapper
-// TODO: provide functions.yaml and the code-gen implementation
-void add_op(EValue *args) {
-  Tensor *a = args[0].toTensor();
-  Tensor *b = args[1].toTensor();
-  Tensor *c = args[2].toTensor();
-  Scalar s = Scalar();
-  native::add_kernel(*a, *b, s, *c);
-}
-
-static const std::vector<op_fn_register> op_reg{
-    op_fn_register("demo::add", add_op), op_fn_register("demo::mul", mul_op)};
+//
+//void mul_op(EValue *args) {
+//  Tensor *a = args[0].toTensor();
+//  Tensor *b = args[1].toTensor();
+//  Tensor *c = args[2].toTensor();
+//  native::mul_kernel(*a, *b, *c);
+//}
+//
+//// Code-generated glue unbox wrapper
+//// TODO: provide functions.yaml and the code-gen implementation
+//void add_op(EValue *args) {
+//  Tensor *a = args[0].toTensor();
+//  Tensor *b = args[1].toTensor();
+//  Tensor *c = args[2].toTensor();
+//  Scalar s = Scalar();
+//  native::add_kernel(*a, *b, s, *c);
+//}
+//
+//static const std::vector<op_fn_register> op_reg{
+//    op_fn_register("demo::add", add_op), op_fn_register("demo::mul", mul_op)};
 
 } // namespace executor
 } // namespace torch
