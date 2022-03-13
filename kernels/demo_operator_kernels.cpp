@@ -37,6 +37,7 @@ void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
   }
 }
 } // namespace native
+
 //
 //void mul_op(EValue *args) {
 //  Tensor *a = args[0].toTensor();

@@ -1,5 +1,5 @@
 #pragma once
-#include <Tensor.h>
+#include <tensor.h>
 #include <Scalar.h>
 #include <error_message.h>
 #include <ArrayRef.h>
