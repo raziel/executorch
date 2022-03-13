@@ -7,7 +7,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXECUTORCH_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -52,7 +52,22 @@ add_library(executorch SHARED
     ${EXECUTORCH_SOURCE_DIR}/core/operator_registry.cpp
     ${EXECUTORCH_SOURCE_DIR}/kernels/demo_operator_kernels.cpp
 )
-add_dependencies(executorch schema_header GEN_TARGET)
+
+add_dependencies(executorch schema_header)
+
+if(APPLE)
+  set(link_flag_1 "-Wl,-all_load")
+else()
+  set(link_flag_1 "-Wl,--whole-archive")
+  set(link_flag_2 "-Wl,--no-whole-archive")
+endif()
+
+target_link_libraries(executorch PUBLIC
+        ${link_flag_1}
+        GEN_TARGET
+        ${link_flag_2}
+)
+
 set_target_properties(executorch PROPERTIES
     OUTPUT_NAME executorch
     VERSION ${PROJECT_VERSION}

@@ -1,6 +1,6 @@
-#include <core/operator_registry.h>
+#include <operator_registry.h>
 
-#include <build/generated/UnboxingFunctions.h>
+#include <UnboxingFunctions.h>
 
 // ${generated_comment}
 
@@ -14,7 +14,7 @@
 namespace at = torch::executor;
 
 namespace torch {
-namespace exectuor {
+namespace executor {
 
 namespace {
 
