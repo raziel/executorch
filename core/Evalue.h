@@ -8,6 +8,10 @@
 namespace torch {
 namespace executor {
 
+template<typename T>
+struct evalue_to_const_ref_overload_return {
+  using type = T;
+};
 
 // Aggregate typing system similar to IValue only slimmed down with less functionality,
 // no dependencies on atomic, and fewer supported types to better suit embedded systems
@@ -225,6 +229,8 @@ struct EValue {
     template <typename T>
     T to() &&;
 
+    template <typename T>
+    typename ivalue_to_const_ref_overload_return<T>::type to() const&;
 };
 
 #define DEFINE_TO(T, method_name)                          \
@@ -232,9 +238,14 @@ struct EValue {
   inline T EValue::to<T>()&& {                             \
     return static_cast<T>(std::move(*this).method_name()); \
   }                                                        \
+  template <>                                              \
+  inline evalue_to_const_ref_overload_return<T>::type EValue::to<T>() const& { \
+    typedef evalue_to_const_ref_overload_return<T>::type return_type;          \
+    return static_cast<return_type>(this->method_name());                      \
+  }
 
 template <>
-inline Tensor EValue::to<Tensor>()&& {
+inline Tensor EValue::to<Tensor>() const& {
   return *(std::move(*this).toTensor());
 }
 DEFINE_TO(Scalar, toScalar)

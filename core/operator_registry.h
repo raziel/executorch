@@ -46,7 +46,7 @@ class op_fn_register {
 struct RegisterOperators {
   RegisterOperators() = default;
 
-  explicit RegisterOperators(std::vector<Operator>& operators) {
+  explicit RegisterOperators(std::vector<Operator> operators) {
     for (Operator& o : operators) {
       registerOpsFunction(o);
     }
