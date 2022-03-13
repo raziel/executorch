@@ -7,7 +7,9 @@
 
 
 // ${generated_comment}
-
+#include <tensor.h>
+#include <macros.h>
+#include <Scalar.h>
 $ops_headers
 
 namespace at = torch::executor;

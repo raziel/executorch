@@ -2,6 +2,7 @@
 
 // ${generated_comment}
 #include <tensor.h>
+#include <Scalar.h>
 #include <macros.h>
 
 ${static_dispatch_ops_headers}

@@ -380,7 +380,7 @@ class ComputeCodegenUnboxedKernels:
 
         return f"""
 Operator(
-    "{sig.name()}",
+    "{f.func.name.unambiguous_name()}",
     [](EValue* stack) {{
         at::unboxing::{unboxing.name(f)}(stack);
     }}
@@ -403,7 +403,7 @@ def gen_unboxing(
         env_callable=lambda fn: {
             "definitions": [ComputeUnboxingFunctions(Target.DEFINITION)(fn)]
         },
-        num_shards=5,
+        num_shards=1,
         sharded_keys={"definitions"},
     )
     cpu_fm.write(
@@ -419,7 +419,7 @@ def gen_unboxing(
         native_functions,
         key_fn=key_func,
         env_callable=lambda fn: {"unboxed_ops": [ComputeCodegenUnboxedKernels()(fn)]},
-        num_shards=5,
+        num_shards=1,
         sharded_keys={"unboxed_ops"},
     )
 
@@ -554,7 +554,7 @@ def gen_per_operator_headers(
         cpu_fm.write(f'{category}.h', lambda: {
             'static_dispatch_extra_headers': [],
             f'{category}_includes': [
-                f'#include <build/generated/ops/{name}{suffix}.h>'
+                f'#include <ops/{name}{suffix}.h>'
                 for name in sorted(functions_by_root_name.keys())
             ],
         })
@@ -683,7 +683,7 @@ def gen_source_files(
                     Target.ANONYMOUS_DEFINITION,
                     selector,
                     rocm=rocm,
-                    cpp_namespace='torch::executor',
+                    cpp_namespace='native',
                     class_method_name=None),
                 grouped_native_functions
             )),

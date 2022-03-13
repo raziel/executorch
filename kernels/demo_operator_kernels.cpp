@@ -11,7 +11,7 @@ namespace native {
 // The schema is added by user to PyTorch native function DSL in a yaml file,
 // defined in
 // https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/native/README.md
-void add_kernel(Tensor &a, Tensor &b, Scalar &scalar, Tensor &c) {
+void add_kernel(const Tensor &a, const Tensor &b, const Scalar &scalar, Tensor &c) {
   auto data_a = static_cast<int *>(a.data);
   auto data_b = static_cast<int *>(b.data);
   auto data_c = static_cast<int *>(c.data);
@@ -24,7 +24,7 @@ void add_kernel(Tensor &a, Tensor &b, Scalar &scalar, Tensor &c) {
   }
 }
 
-void mul_kernel(Tensor &a, Tensor &b, Tensor &c) {
+void mul_kernel(const Tensor &a, const Tensor &b, Tensor &c) {
   auto data_a = static_cast<int *>(a.data);
   auto data_b = static_cast<int *>(b.data);
   auto data_c = static_cast<int *>(c.data);
