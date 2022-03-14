@@ -12,6 +12,12 @@ table Buffer {
   data:[ubyte] (force_align: 16);
 }
 
+// Table that contains the metadata about how
+// to unflatten the flattened output from compiler
+table OutputContainerMetadata {
+  encoded_str:string;
+}
+
 table QuantizedSchema {
   qscheme:byte;
   scale:double;
