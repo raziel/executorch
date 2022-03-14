@@ -168,10 +168,6 @@ int ExecutionPlan::execute() const {
         error_with_message("Instruction is not supported.");
       }
     }
-//    for (int j = 0; j < chain->n_kernels_; ++j) {
-//      Kernel* kernel = &chain->kernels_[j];
-//      operators_[kernel->op_index_](kernel->args_);
-//    }
   }
   return 0;
 }

@@ -25,14 +25,19 @@ table Tensor {
   // The tensor format should be compatible to existing PyTorch tensor format
   // index to Program::buffers
   buffer_index:uint;
-  // enum ScalarType
+  // enum ScalarTypegit
   scalar_type:byte;
-  storage_offset:int;
   sizes:[int];
   strides:[int];
 
   // out of scope M1
   requires_grad:bool;
+
+  // Tensor's data can be located in a specific memory pool.
+  // We use mem_id to refer to a memory pool, and the offset
+  // to refer to the offset wrt the base address of that pool.
+  mem_id:int;
+  mem_offset:int;
 
   // only set for quantized tensors
   quantized_schema:QuantizedSchema;

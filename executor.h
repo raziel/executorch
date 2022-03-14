@@ -2,6 +2,7 @@
 #include <core/tensor.h>
 #include <core/Evalue.h>
 #include <core/operator_registry.h>
+#include <base_mem_manager.h>
 
 // namespace "executorch" is reserved for serialization
 namespace torch {
@@ -51,6 +52,8 @@ struct ExecutionPlan {
 
   int n_chains_;
   Chain* chains_;
+
+  BaseMemManager* mem_manager_;
 };
 
 class Executor {

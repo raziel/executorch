@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 # set(CMAKE_VERBOSE_MAKEFILE 1)
-include(codegen/Codegen.cmake)
+#include(codegen/Codegen.cmake)
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to Release, for debug builds use"
     "'-DCMAKE_BUILD_TYPE=Debug'.")

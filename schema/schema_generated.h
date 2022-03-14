@@ -442,11 +442,12 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BUFFER_INDEX = 4,
     VT_SCALAR_TYPE = 6,
-    VT_STORAGE_OFFSET = 8,
-    VT_SIZES = 10,
-    VT_STRIDES = 12,
-    VT_REQUIRES_GRAD = 14,
-    VT_QUANTIZED_SCHEMA = 16
+    VT_SIZES = 8,
+    VT_STRIDES = 10,
+    VT_REQUIRES_GRAD = 12,
+    VT_MEM_ID = 14,
+    VT_MEM_OFFSET = 16,
+    VT_QUANTIZED_SCHEMA = 18
   };
   uint32_t buffer_index() const {
     return GetField<uint32_t>(VT_BUFFER_INDEX, 0);
@@ -459,12 +460,6 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool mutate_scalar_type(int8_t _scalar_type = 0) {
     return SetField<int8_t>(VT_SCALAR_TYPE, _scalar_type, 0);
-  }
-  int32_t storage_offset() const {
-    return GetField<int32_t>(VT_STORAGE_OFFSET, 0);
-  }
-  bool mutate_storage_offset(int32_t _storage_offset = 0) {
-    return SetField<int32_t>(VT_STORAGE_OFFSET, _storage_offset, 0);
   }
   const flatbuffers::Vector<int32_t> *sizes() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SIZES);
@@ -484,6 +479,18 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool mutate_requires_grad(bool _requires_grad = 0) {
     return SetField<uint8_t>(VT_REQUIRES_GRAD, static_cast<uint8_t>(_requires_grad), 0);
   }
+  int32_t mem_id() const {
+    return GetField<int32_t>(VT_MEM_ID, 0);
+  }
+  bool mutate_mem_id(int32_t _mem_id = 0) {
+    return SetField<int32_t>(VT_MEM_ID, _mem_id, 0);
+  }
+  int32_t mem_offset() const {
+    return GetField<int32_t>(VT_MEM_OFFSET, 0);
+  }
+  bool mutate_mem_offset(int32_t _mem_offset = 0) {
+    return SetField<int32_t>(VT_MEM_OFFSET, _mem_offset, 0);
+  }
   const executorch::QuantizedSchema *quantized_schema() const {
     return GetPointer<const executorch::QuantizedSchema *>(VT_QUANTIZED_SCHEMA);
   }
@@ -494,12 +501,13 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_BUFFER_INDEX, 4) &&
            VerifyField<int8_t>(verifier, VT_SCALAR_TYPE, 1) &&
-           VerifyField<int32_t>(verifier, VT_STORAGE_OFFSET, 4) &&
            VerifyOffset(verifier, VT_SIZES) &&
            verifier.VerifyVector(sizes()) &&
            VerifyOffset(verifier, VT_STRIDES) &&
            verifier.VerifyVector(strides()) &&
            VerifyField<uint8_t>(verifier, VT_REQUIRES_GRAD, 1) &&
+           VerifyField<int32_t>(verifier, VT_MEM_ID, 4) &&
+           VerifyField<int32_t>(verifier, VT_MEM_OFFSET, 4) &&
            VerifyOffset(verifier, VT_QUANTIZED_SCHEMA) &&
            verifier.VerifyTable(quantized_schema()) &&
            verifier.EndTable();
@@ -516,9 +524,6 @@ struct TensorBuilder {
   void add_scalar_type(int8_t scalar_type) {
     fbb_.AddElement<int8_t>(Tensor::VT_SCALAR_TYPE, scalar_type, 0);
   }
-  void add_storage_offset(int32_t storage_offset) {
-    fbb_.AddElement<int32_t>(Tensor::VT_STORAGE_OFFSET, storage_offset, 0);
-  }
   void add_sizes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sizes) {
     fbb_.AddOffset(Tensor::VT_SIZES, sizes);
   }
@@ -527,6 +532,12 @@ struct TensorBuilder {
   }
   void add_requires_grad(bool requires_grad) {
     fbb_.AddElement<uint8_t>(Tensor::VT_REQUIRES_GRAD, static_cast<uint8_t>(requires_grad), 0);
+  }
+  void add_mem_id(int32_t mem_id) {
+    fbb_.AddElement<int32_t>(Tensor::VT_MEM_ID, mem_id, 0);
+  }
+  void add_mem_offset(int32_t mem_offset) {
+    fbb_.AddElement<int32_t>(Tensor::VT_MEM_OFFSET, mem_offset, 0);
   }
   void add_quantized_schema(flatbuffers::Offset<executorch::QuantizedSchema> quantized_schema) {
     fbb_.AddOffset(Tensor::VT_QUANTIZED_SCHEMA, quantized_schema);
@@ -546,16 +557,18 @@ inline flatbuffers::Offset<Tensor> CreateTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t buffer_index = 0,
     int8_t scalar_type = 0,
-    int32_t storage_offset = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> sizes = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> strides = 0,
     bool requires_grad = false,
+    int32_t mem_id = 0,
+    int32_t mem_offset = 0,
     flatbuffers::Offset<executorch::QuantizedSchema> quantized_schema = 0) {
   TensorBuilder builder_(_fbb);
   builder_.add_quantized_schema(quantized_schema);
+  builder_.add_mem_offset(mem_offset);
+  builder_.add_mem_id(mem_id);
   builder_.add_strides(strides);
   builder_.add_sizes(sizes);
-  builder_.add_storage_offset(storage_offset);
   builder_.add_buffer_index(buffer_index);
   builder_.add_requires_grad(requires_grad);
   builder_.add_scalar_type(scalar_type);
@@ -566,10 +579,11 @@ inline flatbuffers::Offset<Tensor> CreateTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t buffer_index = 0,
     int8_t scalar_type = 0,
-    int32_t storage_offset = 0,
     const std::vector<int32_t> *sizes = nullptr,
     const std::vector<int32_t> *strides = nullptr,
     bool requires_grad = false,
+    int32_t mem_id = 0,
+    int32_t mem_offset = 0,
     flatbuffers::Offset<executorch::QuantizedSchema> quantized_schema = 0) {
   auto sizes__ = sizes ? _fbb.CreateVector<int32_t>(*sizes) : 0;
   auto strides__ = strides ? _fbb.CreateVector<int32_t>(*strides) : 0;
@@ -577,10 +591,11 @@ inline flatbuffers::Offset<Tensor> CreateTensorDirect(
       _fbb,
       buffer_index,
       scalar_type,
-      storage_offset,
       sizes__,
       strides__,
       requires_grad,
+      mem_id,
+      mem_offset,
       quantized_schema);
 }
 
