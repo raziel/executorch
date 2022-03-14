@@ -346,7 +346,7 @@ TEST(ExecutorTest, Execute) {
 
   // Prepare for inputs
   int input_index = plan.serialization_plan_->inputs()->Get(0);
-  auto input = plan.values_[3];
+  auto input = plan.values_[input_index];
   auto input_t = input.toTensor();
   auto data_input = static_cast<int*>(input_t->data);
   for (int i = 0; i < 4; ++i) {

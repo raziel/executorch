@@ -11,6 +11,9 @@ namespace executorch {
 struct Buffer;
 struct BufferBuilder;
 
+struct OutputContainerMetadata;
+struct OutputContainerMetadataBuilder;
+
 struct QuantizedSchema;
 struct QuantizedSchemaBuilder;
 
@@ -324,6 +327,60 @@ inline flatbuffers::Offset<Buffer> CreateBufferDirect(
   return executorch::CreateBuffer(
       _fbb,
       data__);
+}
+
+struct OutputContainerMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef OutputContainerMetadataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ENCODED_STR = 4
+  };
+  const flatbuffers::String *encoded_str() const {
+    return GetPointer<const flatbuffers::String *>(VT_ENCODED_STR);
+  }
+  flatbuffers::String *mutable_encoded_str() {
+    return GetPointer<flatbuffers::String *>(VT_ENCODED_STR);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ENCODED_STR) &&
+           verifier.VerifyString(encoded_str()) &&
+           verifier.EndTable();
+  }
+};
+
+struct OutputContainerMetadataBuilder {
+  typedef OutputContainerMetadata Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_encoded_str(flatbuffers::Offset<flatbuffers::String> encoded_str) {
+    fbb_.AddOffset(OutputContainerMetadata::VT_ENCODED_STR, encoded_str);
+  }
+  explicit OutputContainerMetadataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<OutputContainerMetadata> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<OutputContainerMetadata>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<OutputContainerMetadata> CreateOutputContainerMetadata(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> encoded_str = 0) {
+  OutputContainerMetadataBuilder builder_(_fbb);
+  builder_.add_encoded_str(encoded_str);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<OutputContainerMetadata> CreateOutputContainerMetadataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *encoded_str = nullptr) {
+  auto encoded_str__ = encoded_str ? _fbb.CreateString(encoded_str) : 0;
+  return executorch::CreateOutputContainerMetadata(
+      _fbb,
+      encoded_str__);
 }
 
 struct QuantizedSchema FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
