@@ -1,5 +1,6 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB_RECURSE sources_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.cpp")
 file(GLOB_RECURSE headers_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.h")

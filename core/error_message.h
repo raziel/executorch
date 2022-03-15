@@ -4,8 +4,7 @@ namespace torch {
 namespace executor {
 
 // TODO: move to error handler
-void error_with_message(char* message);
+[[noreturn]] void error_with_message(const char* message);
 
 } // namespace executor
 } // namespace torch
-
