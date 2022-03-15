@@ -1,3 +1,6 @@
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 file(GLOB_RECURSE sources_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.cpp")
 file(GLOB_RECURSE headers_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.h")
 file(GLOB_RECURSE unboxing_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*")
@@ -82,5 +85,3 @@ add_library(GEN_TARGET STATIC
         ${generated_sources} ${ops_generated_sources})
 
 target_include_directories(GEN_TARGET PUBLIC ${CMAKE_BINARY_DIR}/generated ${CMAKE_CURRENT_LIST_DIR}/../core)
-
-
