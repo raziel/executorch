@@ -63,10 +63,9 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           nullptr,
           nullptr,
           s_tensor->storage_offset());
-      if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
-        auto buffer =
-            program_->buffers()->GetMutableObject(s_tensor->buffer_index());
-        t->data = static_cast<void *>(buffer->mutable_data()->data());
+      if (s_tensor->mem_id() == 0) { // 0 is reserved for RW data
+        auto data = static_cast<const void *>(&program_->constant_buffer()->data()[s_tensor->mem_offset()]);
+        t->data = const_cast<void *>(data);
       }
       else { // TODO: init RW memory pools and do pointer mapping
         t->data = new uint8_t[t->nbytes()];
@@ -92,10 +91,9 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           s_tensor->storage_offset()
         );
 
-        if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
-          auto buffer =
-              program_->buffers()->GetMutableObject(s_tensor->buffer_index());
-          executor_tensors[i].data = static_cast<void *>(buffer->mutable_data()->data());
+        if (s_tensor->mem_id() == 0) { // 0 is reserved for RW data
+          auto data = static_cast<const void *>(&program_->constant_buffer()->data()[s_tensor->mem_offset()]);
+          executor_tensors[i].data = const_cast<void *>(data);
         }
         else { // TODO: init RW memory pools and do pointer mapping
           executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];

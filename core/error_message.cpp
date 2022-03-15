@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdexcept>
 
 namespace torch {
 namespace executor {
@@ -10,8 +11,8 @@ void error_with_message(char* message) {
   // A hacky error function before we have a good convention,
   // better without exception.
   printf("%s\n", message);
-  exit(1);
+  throw std::runtime_error(message);
+  // exit(1); // this line doesnt actually cause tests to fail so switched to the above for now.
 }
 } // namespace executor
 } // namespace torch
-

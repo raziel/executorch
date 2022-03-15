@@ -26,18 +26,26 @@ struct Serializer {
       flatbuffers::FlatBufferBuilder& fbb,
       const EValue& value) {
     auto tensor = value.toTensor();
-    // If there's no data in that tensor, the buffer_index is 0
-    int buffer_index = 0;
+    // If there's no data in that tensor, hard-code to mem_id 1
+    int mem_id = 1;
+    int buffer_offset = 0;
     if (tensor->data) {
+      mem_id = 0;
       auto it = memoized_storage_map_.find(tensor->data);
       if (it != memoized_storage_map_.end()) {
-        buffer_index = it->second;
+        buffer_offset = it->second;
       }
       else {
-        memoized_storage_map_[tensor->data] = ++buffer_index_;
+        memoized_storage_map_[tensor->data] = const_addr_offset_;
         tensor_data_.push_back(tensor);
-        buffer_index = buffer_index_;
+        buffer_offset = const_addr_offset_;
+        const_addr_offset_ += tensor->nbytes();
       }
+    } else {
+      // RW tensors. Hard-code here in mem_id 1.
+      mem_id = 1;
+      buffer_offset = rw_addr_offset_;
+      rw_addr_offset_ += tensor->nbytes();
     }
 
     std::vector<int> sizes;
@@ -47,13 +55,13 @@ struct Serializer {
 
     return executorch::CreateTensorDirect(
         fbb,
-        buffer_index,
         static_cast<int8_t>(tensor->dtype()),
-        0, // hard code storage offset for now. It's tensor's local storage offset, not related to serialization
+        0,
         &sizes,
         0,
         false, // requires grad
-        0);
+        mem_id,
+        buffer_offset);
   }
 
   flatbuffers::Offset<executorch::EValue> valueToFB(flatbuffers::FlatBufferBuilder& fbb, const EValue& value) {
@@ -64,7 +72,8 @@ struct Serializer {
       value_type = executorch::ValueUnion::Tensor;
       offset = tensorToFB(fbb, value).Union();
     } else if (value.tag == Tag::Int) {
-      error_with_message("Int not supported yet.");
+      value_type = executorch::ValueUnion::Int;
+      offset = fbb.CreateStruct(value.toInt()).Union();
     } else {
       // TODO: Support other types.
       error_with_message("Type not supported yet.");
@@ -86,24 +95,6 @@ struct Serializer {
       storeValueAndGetIndex(fbb, v);
     }
 
-    // store buffers
-    // Buffer 0 is fixed for RW values
-    auto buffer_offset = executorch::CreateBuffer(
-        fbb,
-        fbb.CreateVector(
-            reinterpret_cast<const uint8_t*>(0),
-            0));
-    buffer_offsets_.push_back(buffer_offset);
-    for (auto td : tensor_data_) {
-      fbb.ForceVectorAlignment(
-          td->nbytes(), sizeof(uint8_t), FLATBUFFERS_MAX_ALIGNMENT);
-      auto buffer_offset = executorch::CreateBuffer(
-          fbb,
-          fbb.CreateVector(
-              reinterpret_cast<const uint8_t*>(td->data),
-              td->nbytes()));
-      buffer_offsets_.push_back(buffer_offset);
-    }
   }
 
   flatbuffers::DetachedBuffer serializeModule(flatbuffers::FlatBufferBuilder& fbb) {
@@ -127,7 +118,8 @@ struct Serializer {
     Tensor b(ScalarType::Int, 2, b_sizes, b_data);
     values.emplace_back(&b);
 
-    values.emplace_back(Scalar(1));
+    Scalar c = Scalar(1);
+    values.emplace_back(c);
 
     // Rest of tensors (x, z, y) don't have data
     auto x_sizes = new int[2]{2, 2};
@@ -187,8 +179,8 @@ struct Serializer {
     ins_vector.emplace_back(CALL_KERNEL, 1, 0);
 
     std::vector<flatbuffers::Offset<executorch::Chain>> chain_vector;
-    std::vector<int> inputs{2}; // x. Q: would a and b counted inputs?
-    std::vector<int> outputs{3}; // y.
+    std::vector<int> inputs{3}; // x. Q: would a and b counted inputs?
+    std::vector<int> outputs{4}; // y.
     chain_vector.push_back(executorch::CreateChainDirect(
         fbb,
         &inputs,
@@ -208,21 +200,37 @@ struct Serializer {
         &operator_vector
     ));
 
+    // store constant data
+    int total_bytes = 0;
+    for (auto td : tensor_data_) {
+      total_bytes += td->nbytes();
+    }
+
+    uint8_t* data = new uint8_t [total_bytes];
+    int offset = 0;
+    for (auto td : tensor_data_) {
+      memcpy(&data[offset], td->data, td->nbytes());
+      offset += td->nbytes();
+    }
+
+    std::vector<uint8_t> data_vec(data, data + total_bytes);
+    auto const_data_offset = fbb.CreateVector(
+        reinterpret_cast<const uint8_t*>(data),
+        total_bytes);
     auto program_offset = executorch::CreateProgramDirect(
         fbb,
         1, /* version */
         &execution_plan_vector,
-        &buffer_offsets_
+        &data_vec
     );
 
     fbb.Finish(program_offset);
     return fbb.Release();
   }
 
-  int buffer_index_ = 0; // 0 is hard-coded for RW data
+  int const_addr_offset_ = 0; // constant data offset to the buffer
+  int rw_addr_offset_ = 0;
   std::vector<flatbuffers::Offset<executorch::EValue>> value_offsets_;
-  std::vector<flatbuffers::Offset<executorch::Buffer>>
-      buffer_offsets_;
   std::unordered_map<const void*, uint32_t> memoized_storage_map_;
   std::vector<Tensor*> tensor_data_;
 };
@@ -249,7 +257,7 @@ TEST(ExecutorTest, EValue) {
   ASSERT_EQ(v.toTensor()->nbytes(), 16);
 }
 
-TEST(ExecutorTest, DISABLED_Serialize) {
+TEST(ExecutorTest, Serialize) {
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
@@ -261,19 +269,18 @@ TEST(ExecutorTest, DISABLED_Serialize) {
   ASSERT_EQ(operators->Get(1)->name()->str(), "add_out");
 
   auto values = program->execution_plan()->Get(0)->values();
-  ASSERT_EQ(values->Length(), 5);
+  ASSERT_EQ(values->Length(), 6);
   auto b = values->Get(1)->val_as_Tensor();
   ASSERT_EQ(b->sizes()->Length(), 2);
   ASSERT_EQ(b->sizes()->Get(0), 2);
   ASSERT_EQ(b->sizes()->Get(1), 2);
 
-  auto buffer = program->buffers()->GetMutableObject(b->buffer_index());
-  void* ptr = static_cast<void*>(buffer->mutable_data()->data());
-  auto d_ptr = static_cast<int*>(ptr);
+  auto ptr = static_cast<const void *>(&program->constant_buffer()->data()[b->mem_offset()]);
+  auto d_ptr = static_cast<const int*>(ptr);
   ASSERT_EQ(d_ptr[3], 8);
 }
 
-TEST(ExecutorTest, DISABLED_) {
+TEST(ExecutorTest, load) {
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
@@ -282,7 +289,7 @@ TEST(ExecutorTest, DISABLED_) {
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();
-  ASSERT_EQ(plan.n_value_, 5);
+  ASSERT_EQ(plan.n_value_, 6);
   Tensor* b = plan.values_[1].toTensor();
   ASSERT_EQ(b->dtype(), ScalarType::Int);
   ASSERT_EQ(b->dim(), 2);
@@ -332,7 +339,7 @@ TEST(ExecutorTest, ArrayRef) {
   ASSERT_EQ(sizeof(bap), 16);
 }
 
-TEST(ExecutorTest, DISABLED_Execute) {
+TEST(ExecutorTest, Execute) {
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);

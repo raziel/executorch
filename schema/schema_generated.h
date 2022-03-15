@@ -8,8 +8,8 @@
 
 namespace executorch {
 
-struct Buffer;
-struct BufferBuilder;
+struct OutputContainerMetadata;
+struct OutputContainerMetadataBuilder;
 
 struct QuantizedSchema;
 struct QuantizedSchemaBuilder;
@@ -271,59 +271,58 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Instruction FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Instruction, 12);
 
-struct Buffer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef BufferBuilder Builder;
+struct OutputContainerMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef OutputContainerMetadataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_DATA = 4
+    VT_ENCODED_STR = 4
   };
-  const flatbuffers::Vector<uint8_t> *data() const {
-    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  const flatbuffers::String *encoded_str() const {
+    return GetPointer<const flatbuffers::String *>(VT_ENCODED_STR);
   }
-  flatbuffers::Vector<uint8_t> *mutable_data() {
-    return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_DATA);
+  flatbuffers::String *mutable_encoded_str() {
+    return GetPointer<flatbuffers::String *>(VT_ENCODED_STR);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_DATA) &&
-           verifier.VerifyVector(data()) &&
+           VerifyOffset(verifier, VT_ENCODED_STR) &&
+           verifier.VerifyString(encoded_str()) &&
            verifier.EndTable();
   }
 };
 
-struct BufferBuilder {
-  typedef Buffer Table;
+struct OutputContainerMetadataBuilder {
+  typedef OutputContainerMetadata Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data) {
-    fbb_.AddOffset(Buffer::VT_DATA, data);
+  void add_encoded_str(flatbuffers::Offset<flatbuffers::String> encoded_str) {
+    fbb_.AddOffset(OutputContainerMetadata::VT_ENCODED_STR, encoded_str);
   }
-  explicit BufferBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit OutputContainerMetadataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<Buffer> Finish() {
+  flatbuffers::Offset<OutputContainerMetadata> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Buffer>(end);
+    auto o = flatbuffers::Offset<OutputContainerMetadata>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Buffer> CreateBuffer(
+inline flatbuffers::Offset<OutputContainerMetadata> CreateOutputContainerMetadata(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> data = 0) {
-  BufferBuilder builder_(_fbb);
-  builder_.add_data(data);
+    flatbuffers::Offset<flatbuffers::String> encoded_str = 0) {
+  OutputContainerMetadataBuilder builder_(_fbb);
+  builder_.add_encoded_str(encoded_str);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<Buffer> CreateBufferDirect(
+inline flatbuffers::Offset<OutputContainerMetadata> CreateOutputContainerMetadataDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint8_t> *data = nullptr) {
-  if (data) { _fbb.ForceVectorAlignment(data->size(), sizeof(uint8_t), 16); }
-  auto data__ = data ? _fbb.CreateVector<uint8_t>(*data) : 0;
-  return executorch::CreateBuffer(
+    const char *encoded_str = nullptr) {
+  auto encoded_str__ = encoded_str ? _fbb.CreateString(encoded_str) : 0;
+  return executorch::CreateOutputContainerMetadata(
       _fbb,
-      data__);
+      encoded_str__);
 }
 
 struct QuantizedSchema FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -440,8 +439,8 @@ inline flatbuffers::Offset<QuantizedSchema> CreateQuantizedSchema(
 struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef TensorBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_BUFFER_INDEX = 4,
-    VT_SCALAR_TYPE = 6,
+    VT_SCALAR_TYPE = 4,
+    VT_STORAGE_OFFSET = 6,
     VT_SIZES = 8,
     VT_STRIDES = 10,
     VT_REQUIRES_GRAD = 12,
@@ -449,17 +448,17 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MEM_OFFSET = 16,
     VT_QUANTIZED_SCHEMA = 18
   };
-  uint32_t buffer_index() const {
-    return GetField<uint32_t>(VT_BUFFER_INDEX, 0);
-  }
-  bool mutate_buffer_index(uint32_t _buffer_index = 0) {
-    return SetField<uint32_t>(VT_BUFFER_INDEX, _buffer_index, 0);
-  }
   int8_t scalar_type() const {
     return GetField<int8_t>(VT_SCALAR_TYPE, 0);
   }
   bool mutate_scalar_type(int8_t _scalar_type = 0) {
     return SetField<int8_t>(VT_SCALAR_TYPE, _scalar_type, 0);
+  }
+  int32_t storage_offset() const {
+    return GetField<int32_t>(VT_STORAGE_OFFSET, 0);
+  }
+  bool mutate_storage_offset(int32_t _storage_offset = 0) {
+    return SetField<int32_t>(VT_STORAGE_OFFSET, _storage_offset, 0);
   }
   const flatbuffers::Vector<int32_t> *sizes() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SIZES);
@@ -499,8 +498,8 @@ struct Tensor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint32_t>(verifier, VT_BUFFER_INDEX, 4) &&
            VerifyField<int8_t>(verifier, VT_SCALAR_TYPE, 1) &&
+           VerifyField<int32_t>(verifier, VT_STORAGE_OFFSET, 4) &&
            VerifyOffset(verifier, VT_SIZES) &&
            verifier.VerifyVector(sizes()) &&
            VerifyOffset(verifier, VT_STRIDES) &&
@@ -518,11 +517,11 @@ struct TensorBuilder {
   typedef Tensor Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_buffer_index(uint32_t buffer_index) {
-    fbb_.AddElement<uint32_t>(Tensor::VT_BUFFER_INDEX, buffer_index, 0);
-  }
   void add_scalar_type(int8_t scalar_type) {
     fbb_.AddElement<int8_t>(Tensor::VT_SCALAR_TYPE, scalar_type, 0);
+  }
+  void add_storage_offset(int32_t storage_offset) {
+    fbb_.AddElement<int32_t>(Tensor::VT_STORAGE_OFFSET, storage_offset, 0);
   }
   void add_sizes(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sizes) {
     fbb_.AddOffset(Tensor::VT_SIZES, sizes);
@@ -555,8 +554,8 @@ struct TensorBuilder {
 
 inline flatbuffers::Offset<Tensor> CreateTensor(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t buffer_index = 0,
     int8_t scalar_type = 0,
+    int32_t storage_offset = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> sizes = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> strides = 0,
     bool requires_grad = false,
@@ -569,7 +568,7 @@ inline flatbuffers::Offset<Tensor> CreateTensor(
   builder_.add_mem_id(mem_id);
   builder_.add_strides(strides);
   builder_.add_sizes(sizes);
-  builder_.add_buffer_index(buffer_index);
+  builder_.add_storage_offset(storage_offset);
   builder_.add_requires_grad(requires_grad);
   builder_.add_scalar_type(scalar_type);
   return builder_.Finish();
@@ -577,8 +576,8 @@ inline flatbuffers::Offset<Tensor> CreateTensor(
 
 inline flatbuffers::Offset<Tensor> CreateTensorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    uint32_t buffer_index = 0,
     int8_t scalar_type = 0,
+    int32_t storage_offset = 0,
     const std::vector<int32_t> *sizes = nullptr,
     const std::vector<int32_t> *strides = nullptr,
     bool requires_grad = false,
@@ -589,8 +588,8 @@ inline flatbuffers::Offset<Tensor> CreateTensorDirect(
   auto strides__ = strides ? _fbb.CreateVector<int32_t>(*strides) : 0;
   return executorch::CreateTensor(
       _fbb,
-      buffer_index,
       scalar_type,
+      storage_offset,
       sizes__,
       strides__,
       requires_grad,
@@ -1365,7 +1364,7 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VERSION = 4,
     VT_EXECUTION_PLAN = 6,
-    VT_BUFFERS = 8
+    VT_CONSTANT_BUFFER = 8
   };
   uint32_t version() const {
     return GetField<uint32_t>(VT_VERSION, 0);
@@ -1379,11 +1378,11 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<flatbuffers::Offset<executorch::ExecutionPlan>> *mutable_execution_plan() {
     return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::ExecutionPlan>> *>(VT_EXECUTION_PLAN);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>> *buffers() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>> *>(VT_BUFFERS);
+  const flatbuffers::Vector<uint8_t> *constant_buffer() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_CONSTANT_BUFFER);
   }
-  flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>> *mutable_buffers() {
-    return GetPointer<flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>> *>(VT_BUFFERS);
+  flatbuffers::Vector<uint8_t> *mutable_constant_buffer() {
+    return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_CONSTANT_BUFFER);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1391,9 +1390,8 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_EXECUTION_PLAN) &&
            verifier.VerifyVector(execution_plan()) &&
            verifier.VerifyVectorOfTables(execution_plan()) &&
-           VerifyOffset(verifier, VT_BUFFERS) &&
-           verifier.VerifyVector(buffers()) &&
-           verifier.VerifyVectorOfTables(buffers()) &&
+           VerifyOffset(verifier, VT_CONSTANT_BUFFER) &&
+           verifier.VerifyVector(constant_buffer()) &&
            verifier.EndTable();
   }
 };
@@ -1408,8 +1406,8 @@ struct ProgramBuilder {
   void add_execution_plan(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::ExecutionPlan>>> execution_plan) {
     fbb_.AddOffset(Program::VT_EXECUTION_PLAN, execution_plan);
   }
-  void add_buffers(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>>> buffers) {
-    fbb_.AddOffset(Program::VT_BUFFERS, buffers);
+  void add_constant_buffer(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> constant_buffer) {
+    fbb_.AddOffset(Program::VT_CONSTANT_BUFFER, constant_buffer);
   }
   explicit ProgramBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1426,9 +1424,9 @@ inline flatbuffers::Offset<Program> CreateProgram(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t version = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::ExecutionPlan>>> execution_plan = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::Buffer>>> buffers = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> constant_buffer = 0) {
   ProgramBuilder builder_(_fbb);
-  builder_.add_buffers(buffers);
+  builder_.add_constant_buffer(constant_buffer);
   builder_.add_execution_plan(execution_plan);
   builder_.add_version(version);
   return builder_.Finish();
@@ -1438,14 +1436,15 @@ inline flatbuffers::Offset<Program> CreateProgramDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t version = 0,
     const std::vector<flatbuffers::Offset<executorch::ExecutionPlan>> *execution_plan = nullptr,
-    const std::vector<flatbuffers::Offset<executorch::Buffer>> *buffers = nullptr) {
+    const std::vector<uint8_t> *constant_buffer = nullptr) {
   auto execution_plan__ = execution_plan ? _fbb.CreateVector<flatbuffers::Offset<executorch::ExecutionPlan>>(*execution_plan) : 0;
-  auto buffers__ = buffers ? _fbb.CreateVector<flatbuffers::Offset<executorch::Buffer>>(*buffers) : 0;
+  if (constant_buffer) { _fbb.ForceVectorAlignment(constant_buffer->size(), sizeof(uint8_t), 16); }
+  auto constant_buffer__ = constant_buffer ? _fbb.CreateVector<uint8_t>(*constant_buffer) : 0;
   return executorch::CreateProgram(
       _fbb,
       version,
       execution_plan__,
-      buffers__);
+      constant_buffer__);
 }
 
 inline bool VerifyValueUnion(flatbuffers::Verifier &verifier, const void *obj, ValueUnion type) {

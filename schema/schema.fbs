@@ -5,11 +5,10 @@ file_identifier "ET01";
 // Extension of written files.
 file_extension "extorch";
 
-// Table of raw data buffers, used for constant Values (e.g. like
-// weight tensors), who reference it by index.
-// The alignment accommodates mmap-friendly data structures.
-table Buffer {
-  data:[ubyte] (force_align: 16);
+// Table that contains the metadata about how
+// to unflatten the flattened output from compiler
+table OutputContainerMetadata {
+  encoded_str:string;
 }
 
 table QuantizedSchema {
@@ -22,11 +21,9 @@ table QuantizedSchema {
 }
 
 table Tensor {
-  // The tensor format should be compatible to existing PyTorch tensor format
-  // index to Program::buffers
-  buffer_index:uint;
   // enum ScalarTypegit
   scalar_type:byte;
+  storage_offset:int;
   sizes:[int];
   strides:[int];
 
@@ -166,10 +163,11 @@ table Program {
   // to execute the same program, for portability across devices.
   execution_plan:[ExecutionPlan];
 
-  // Buffers of the model.
-  // Note the 0th entry of this array must be an empty buffer (sentinel) to be
-  // used by writable (non-constant) Values.
-  buffers:[Buffer];
+  // Table of constant binary, used for constant Values (e.g.
+  // data field of weight tensors). It's accessed by address offset.
+  // The alignment accommodates mmap-friendly data structures.
+  // By default this buffer is in mem_id 0
+  constant_buffer:[ubyte] (force_align: 16);
 }
 
 root_type Program;
