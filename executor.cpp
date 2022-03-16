@@ -68,7 +68,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
         t->data = const_cast<void *>(data);
       }
       else { // TODO: init RW memory pools and do pointer mapping
-        t->data = new uint8_t[t->nbytes()];
+        t->data = static_cast<void *>(&mem_manager_->base_addresses_[s_tensor->mem_id()][s_tensor->mem_offset()]);
       }
       values_[i].payload.as_tensor = t;
     } break;
