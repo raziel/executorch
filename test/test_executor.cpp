@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core/tensor.h>
+#include <core/Tensor.h>
 #include <core/ArrayRef.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>

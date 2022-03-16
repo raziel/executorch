@@ -10,6 +10,7 @@
 **/install_manifest.txt
 *.pc
 Makefile
+generated/
 
 # Compiled Object files
 *.slo
