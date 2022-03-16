@@ -1,10 +1,10 @@
 #pragma once
-#include <core/tensor.h>
+#include <core/Tensor.h>
 
 namespace torch {
 namespace executor {
 
-// The base memory manager for the executor. 
+// The base memory manager for the executor.
 // In a typical embedded system, there can be one or more memory pools
 // to store data. This manager has the sizes and base addresses of those
 // memory pools.
@@ -18,8 +18,8 @@ public:
   : n_mems_(n_mems),
   sizes_(sizes),
   base_addresses_(base_addresses) {}
-  
-  // The manager holds n_mems_ memory pools. 
+
+  // The manager holds n_mems_ memory pools.
   int n_mems_;
 
   // Sizes of the pools
