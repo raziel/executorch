@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core/Tensor.h>
+#include <core/tensor.h>
 #include <core/ArrayRef.h>
 #include <core/Evalue.h>
 #include <core/Scalar.h>
@@ -325,13 +325,24 @@ TEST(ExecutorTest, Registry) {
   ASSERT_EQ(d_ptr[3], 12);
 }
 
-TEST(ExecutorTest, ArrayRef) {
-  IntArrayRef foo(1);
-  ASSERT_EQ(foo[0], 1);
-  int64_t* bar = new int64_t[1];
-  size_t length = 1;
-  IntArrayRef bap(bar, length);
-  ASSERT_EQ(sizeof(bap), 16);
+TEST(ExecutorTest, IntArrayRefSingleElement) {
+  // Create an IntArrayRef with a single element. `ref` will contain a pointer
+  // to `one`, which must outlive the array ref.
+  const IntArrayRef::value_type one = 1;
+  IntArrayRef ref(one);
+  EXPECT_EQ(ref[0], 1);
+}
+
+TEST(ExecutorTest, IntArrayRefDataAndLength) {
+  // Create an IntArrayRef from an array. `ref` will contain a pointer to
+  // `array`, which must outlive the array ref.
+  const IntArrayRef::value_type array[4] = {5, 6, 7, 8};
+  const IntArrayRef::size_type length = 4;
+  IntArrayRef ref(array, length);
+
+  EXPECT_EQ(ref.size(), length);
+  EXPECT_EQ(ref.front(), 5);
+  EXPECT_EQ(ref.back(), 8);
 }
 
 TEST(ExecutorTest, Execute) {

@@ -16,6 +16,7 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <iterator>
 #include <vector>
 
@@ -64,15 +65,11 @@ class ArrayRef final {
 
   /// Construct an ArrayRef from a pointer and length.
   constexpr ArrayRef(const T* data, size_t length)
-      : Data(data), Length(length) {
-    assert(Data != nullptr || Length == 0);
-  }
+      : Data(data), Length(length) {}
 
   /// Construct an ArrayRef from a range.
    ArrayRef(const T* begin, const T* end)
-      : Data(begin), Length(end - begin) {
-    assert(Data != nullptr || Length == 0);
-  }
+      : Data(begin), Length(end - begin) {}
 
 
   /// Construct an ArrayRef from a std::vector.
