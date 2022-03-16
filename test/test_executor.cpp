@@ -8,6 +8,7 @@
 #include <schema_generated.h>
 #include <unordered_map>
 #include <executor.h>
+#include <test/test_mem_config.h>
 #include <string>
 
 int main(int argc, char* argv[]) {
@@ -281,11 +282,17 @@ TEST(ExecutorTest, Serialize) {
 }
 
 TEST(ExecutorTest, load) {
+  uint8_t* base_addresses[NUM_MEMORY_POOLS];
+  int pool_sizes[NUM_MEMORY_POOLS]{0, };
+  base_addresses[0] = nullptr; // reserved for constant pool
+  base_addresses[1] = activation_pool;
+  BaseMemManager mem_manager(NUM_MEMORY_POOLS, pool_sizes, base_addresses);
+
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
   auto program = executorch::GetProgram(buff.data());
-  Executor executor(program);
+  Executor executor(program, &mem_manager);
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();
@@ -340,11 +347,17 @@ TEST(ExecutorTest, ArrayRef) {
 }
 
 TEST(ExecutorTest, Execute) {
+  uint8_t* base_addresses[NUM_MEMORY_POOLS];
+  int pool_sizes[NUM_MEMORY_POOLS]{0, };
+  base_addresses[0] = nullptr; // reserved for constant pool
+  base_addresses[1] = activation_pool;
+  BaseMemManager mem_manager(NUM_MEMORY_POOLS, pool_sizes, base_addresses);
+
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
   auto program = executorch::GetProgram(buff.data());
-  Executor executor(program);
+  Executor executor(program, &mem_manager);
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();

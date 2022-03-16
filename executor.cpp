@@ -5,8 +5,8 @@
 namespace torch {
 namespace executor {
 
-Executor::Executor(const executorch::Program* program)
-    : program_(program), plan_(program) {}
+Executor::Executor(const executorch::Program* program, BaseMemManager* mem_manager)
+    : program_(program), plan_(program, mem_manager), mem_manager_(mem_manager) {}
 
 int Executor::init_execution_plan(int index) {
   auto serialization_plan = program_->execution_plan()->GetMutableObject(index);
@@ -96,7 +96,8 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           executor_tensors[i].data = const_cast<void *>(data);
         }
         else { // TODO: init RW memory pools and do pointer mapping
-          executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];
+//          executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];
+          executor_tensors[i].data = static_cast<void *>(&mem_manager_->base_addresses_[s_tensor->mem_id()][s_tensor->mem_offset()]);
         };
 
         i++;
