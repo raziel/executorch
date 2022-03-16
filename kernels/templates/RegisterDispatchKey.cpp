@@ -7,7 +7,7 @@
 
 
 // ${generated_comment}
-#include <tensor.h>
+#include <Tensor.h>
 #include <macros.h>
 #include <Scalar.h>
 $ops_headers

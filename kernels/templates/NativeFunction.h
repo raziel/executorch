@@ -1,7 +1,7 @@
 #pragma once
 
 // ${generated_comment}
-#include <tensor.h>
+#include <Tensor.h>
 #include <Scalar.h>
 #include <macros.h>
 
