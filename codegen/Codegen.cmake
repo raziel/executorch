@@ -1,5 +1,6 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB_RECURSE sources_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.cpp")
 file(GLOB_RECURSE headers_templates "${CMAKE_CURRENT_LIST_DIR}/../kernels/templates/*.h")
@@ -83,5 +84,11 @@ add_custom_command(
 add_library(GEN_TARGET STATIC
         ${generated_headers} ${ops_generated_headers}
         ${generated_sources} ${ops_generated_sources})
+
+# Linking this .a into libexecutorch.so on Linux requires -fPIC to be set
+# so that its symbols can be relocated. Unfortunately, at this point,
+# CMAKE_SYSTEM_NAME isn't set because project() hasn't been called yet, so do
+# this for all target OSes.
+set_property(TARGET GEN_TARGET PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(GEN_TARGET PUBLIC ${CMAKE_BINARY_DIR}/generated ${CMAKE_CURRENT_LIST_DIR}/../core)

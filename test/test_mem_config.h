@@ -1,6 +1,8 @@
 #pragma once
 
-// mimic memory pool pre-allocation in an embedded system.
+// mimic a typical memory pool pre-allocation in an embedded system.
+// It's defined by the user and included in the application when linking to
+// lib executorch
 
 // Number of pools used. Pool zero is defaulted to constant data in flatbuffer
 #define NUM_MEMORY_POOLS 2

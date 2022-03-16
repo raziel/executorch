@@ -7,8 +7,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+# To stay compatible with as many cross-compilation toolchains as possible,
+# the executor runtime must build with C++11, and without any compiler-specific
+# extensions.
+# TODO: We could move this restriction to the executor instead of applying it
+# globally.
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(EXECUTORCH_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
