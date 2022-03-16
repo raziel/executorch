@@ -2,7 +2,7 @@
 // ${generated_comment}
 
 // NB: The implementing C++ file is RegisterDispatchKey.cpp
-#include <tensor.h>
+#include <Tensor.h>
 #include <Scalar.h>
 #include <macros.h>
 // The only #includes we need are for custom classes that have defaults in the C++ API
