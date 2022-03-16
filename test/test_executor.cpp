@@ -8,6 +8,7 @@
 #include <schema_generated.h>
 #include <unordered_map>
 #include <executor.h>
+#include <test/test_mem_config.h>
 #include <string>
 
 int main(int argc, char* argv[]) {
@@ -26,18 +27,26 @@ struct Serializer {
       flatbuffers::FlatBufferBuilder& fbb,
       const EValue& value) {
     auto tensor = value.toTensor();
-    // If there's no data in that tensor, the buffer_index is 0
-    int buffer_index = 0;
+    // If there's no data in that tensor, hard-code to mem_id 1
+    int mem_id = 1;
+    int buffer_offset = 0;
     if (tensor->data) {
+      mem_id = 0;
       auto it = memoized_storage_map_.find(tensor->data);
       if (it != memoized_storage_map_.end()) {
-        buffer_index = it->second;
+        buffer_offset = it->second;
       }
       else {
-        memoized_storage_map_[tensor->data] = ++buffer_index_;
+        memoized_storage_map_[tensor->data] = const_addr_offset_;
         tensor_data_.push_back(tensor);
-        buffer_index = buffer_index_;
+        buffer_offset = const_addr_offset_;
+        const_addr_offset_ += tensor->nbytes();
       }
+    } else {
+      // RW tensors. Hard-code here in mem_id 1.
+      mem_id = 1;
+      buffer_offset = rw_addr_offset_;
+      rw_addr_offset_ += tensor->nbytes();
     }
 
     std::vector<int> sizes;
@@ -47,13 +56,13 @@ struct Serializer {
 
     return executorch::CreateTensorDirect(
         fbb,
-        buffer_index,
         static_cast<int8_t>(tensor->dtype()),
-        0, // hard code storage offset for now. It's tensor's local storage offset, not related to serialization
+        0,
         &sizes,
         0,
         false, // requires grad
-        0);
+        mem_id,
+        buffer_offset);
   }
 
   flatbuffers::Offset<executorch::EValue> valueToFB(flatbuffers::FlatBufferBuilder& fbb, const EValue& value) {
@@ -87,24 +96,6 @@ struct Serializer {
       storeValueAndGetIndex(fbb, v);
     }
 
-    // store buffers
-    // Buffer 0 is fixed for RW values
-    auto buffer_offset = executorch::CreateBuffer(
-        fbb,
-        fbb.CreateVector(
-            reinterpret_cast<const uint8_t*>(0),
-            0));
-    buffer_offsets_.push_back(buffer_offset);
-    for (auto td : tensor_data_) {
-      fbb.ForceVectorAlignment(
-          td->nbytes(), sizeof(uint8_t), FLATBUFFERS_MAX_ALIGNMENT);
-      auto buffer_offset = executorch::CreateBuffer(
-          fbb,
-          fbb.CreateVector(
-              reinterpret_cast<const uint8_t*>(td->data),
-              td->nbytes()));
-      buffer_offsets_.push_back(buffer_offset);
-    }
   }
 
   flatbuffers::DetachedBuffer serializeModule(flatbuffers::FlatBufferBuilder& fbb) {
@@ -210,21 +201,37 @@ struct Serializer {
         &operator_vector
     ));
 
+    // store constant data
+    int total_bytes = 0;
+    for (auto td : tensor_data_) {
+      total_bytes += td->nbytes();
+    }
+
+    uint8_t* data = new uint8_t [total_bytes];
+    int offset = 0;
+    for (auto td : tensor_data_) {
+      memcpy(&data[offset], td->data, td->nbytes());
+      offset += td->nbytes();
+    }
+
+    std::vector<uint8_t> data_vec(data, data + total_bytes);
+    auto const_data_offset = fbb.CreateVector(
+        reinterpret_cast<const uint8_t*>(data),
+        total_bytes);
     auto program_offset = executorch::CreateProgramDirect(
         fbb,
         1, /* version */
         &execution_plan_vector,
-        &buffer_offsets_
+        &data_vec
     );
 
     fbb.Finish(program_offset);
     return fbb.Release();
   }
 
-  int buffer_index_ = 0; // 0 is hard-coded for RW data
+  int const_addr_offset_ = 0; // constant data offset to the buffer
+  int rw_addr_offset_ = 0;
   std::vector<flatbuffers::Offset<executorch::EValue>> value_offsets_;
-  std::vector<flatbuffers::Offset<executorch::Buffer>>
-      buffer_offsets_;
   std::unordered_map<const void*, uint32_t> memoized_storage_map_;
   std::vector<Tensor*> tensor_data_;
 };
@@ -269,18 +276,23 @@ TEST(ExecutorTest, Serialize) {
   ASSERT_EQ(b->sizes()->Get(0), 2);
   ASSERT_EQ(b->sizes()->Get(1), 2);
 
-  auto buffer = program->buffers()->GetMutableObject(b->buffer_index());
-  void* ptr = static_cast<void*>(buffer->mutable_data()->data());
-  auto d_ptr = static_cast<int*>(ptr);
+  auto ptr = static_cast<const void *>(&program->constant_buffer()->data()[b->mem_offset()]);
+  auto d_ptr = static_cast<const int*>(ptr);
   ASSERT_EQ(d_ptr[3], 8);
 }
 
 TEST(ExecutorTest, load) {
+  uint8_t* base_addresses[NUM_MEMORY_POOLS];
+  int pool_sizes[NUM_MEMORY_POOLS]{0, };
+  base_addresses[0] = nullptr; // reserved for constant pool
+  base_addresses[1] = activation_pool;
+  BaseMemManager mem_manager(NUM_MEMORY_POOLS, pool_sizes, base_addresses);
+
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
   auto program = executorch::GetProgram(buff.data());
-  Executor executor(program);
+  Executor executor(program, &mem_manager);
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();
@@ -346,11 +358,17 @@ TEST(ExecutorTest, IntArrayRefDataAndLength) {
 }
 
 TEST(ExecutorTest, Execute) {
+  uint8_t* base_addresses[NUM_MEMORY_POOLS];
+  int pool_sizes[NUM_MEMORY_POOLS]{0, };
+  base_addresses[0] = nullptr; // reserved for constant pool
+  base_addresses[1] = activation_pool;
+  BaseMemManager mem_manager(NUM_MEMORY_POOLS, pool_sizes, base_addresses);
+
   flatbuffers::FlatBufferBuilder fbb;
   Serializer serializer;
   auto buff = serializer.serializeModule(fbb);
   auto program = executorch::GetProgram(buff.data());
-  Executor executor(program);
+  Executor executor(program, &mem_manager);
   executor.init_execution_plan(0);
 
   const auto& plan = executor.executionPlan();

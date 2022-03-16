@@ -2,6 +2,7 @@
 #include <core/tensor.h>
 #include <core/Evalue.h>
 #include <core/operator_registry.h>
+#include <base_mem_manager.h>
 
 // namespace "executorch" is reserved for serialization
 namespace torch {
@@ -37,10 +38,12 @@ struct Chain {
 // It holds function pointers of kernels, instead of operator names.
 // TODO: use static memory planning to create all executor related data
 struct ExecutionPlan {
-  explicit ExecutionPlan(const executorch::Program* program) : program_(program) {}
+  ExecutionPlan(const executorch::Program* program, BaseMemManager* mem_manager)
+      : program_(program), mem_manager_(mem_manager) {}
   int init(executorch::ExecutionPlan* s_plan);
   int execute() const;
   const executorch::Program* program_;
+  BaseMemManager* mem_manager_;
   executorch::ExecutionPlan* serialization_plan_;
 
   int n_value_;
@@ -51,6 +54,7 @@ struct ExecutionPlan {
 
   int n_chains_;
   Chain* chains_;
+
 };
 
 class Executor {
@@ -58,7 +62,7 @@ class Executor {
  public:
 
   // Executes a PyTorch executor program.
-  explicit Executor(const executorch::Program* program);
+  explicit Executor(const executorch::Program* program, BaseMemManager* mem_manager);
 
   int init_execution_plan(int index);
 
@@ -70,6 +74,7 @@ class Executor {
 
   const executorch::Program* program_;
   ExecutionPlan plan_;
+  BaseMemManager* mem_manager_;
 };
 
 } // namespace executor

@@ -5,8 +5,8 @@
 namespace torch {
 namespace executor {
 
-Executor::Executor(const executorch::Program* program)
-    : program_(program), plan_(program) {}
+Executor::Executor(const executorch::Program* program, BaseMemManager* mem_manager)
+    : program_(program), plan_(program, mem_manager), mem_manager_(mem_manager) {}
 
 int Executor::init_execution_plan(int index) {
   auto serialization_plan = program_->execution_plan()->GetMutableObject(index);
@@ -63,10 +63,9 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           nullptr,
           nullptr,
           s_tensor->storage_offset());
-      if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
-        auto buffer =
-            program_->buffers()->GetMutableObject(s_tensor->buffer_index());
-        t->data = static_cast<void *>(buffer->mutable_data()->data());
+      if (s_tensor->mem_id() == 0) { // 0 is reserved for RW data
+        auto data = static_cast<const void *>(&program_->constant_buffer()->data()[s_tensor->mem_offset()]);
+        t->data = const_cast<void *>(data);
       }
       else { // TODO: init RW memory pools and do pointer mapping
         t->data = new uint8_t[t->nbytes()];
@@ -92,13 +91,13 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
           s_tensor->storage_offset()
         );
 
-        if (s_tensor->buffer_index() > 0) { // 0 is reserved for RW data
-          auto buffer =
-              program_->buffers()->GetMutableObject(s_tensor->buffer_index());
-          executor_tensors[i].data = static_cast<void *>(buffer->mutable_data()->data());
+        if (s_tensor->mem_id() == 0) { // 0 is reserved for RW data
+          auto data = static_cast<const void *>(&program_->constant_buffer()->data()[s_tensor->mem_offset()]);
+          executor_tensors[i].data = const_cast<void *>(data);
         }
         else { // TODO: init RW memory pools and do pointer mapping
-          executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];
+//          executor_tensors[i].data = new uint8_t[executor_tensors[i].nbytes()];
+          executor_tensors[i].data = static_cast<void *>(&mem_manager_->base_addresses_[s_tensor->mem_id()][s_tensor->mem_offset()]);
         };
 
         i++;
@@ -168,10 +167,6 @@ int ExecutionPlan::execute() const {
         error_with_message("Instruction is not supported.");
       }
     }
-//    for (int j = 0; j < chain->n_kernels_; ++j) {
-//      Kernel* kernel = &chain->kernels_[j];
-//      operators_[kernel->op_index_](kernel->args_);
-//    }
   }
   return 0;
 }
