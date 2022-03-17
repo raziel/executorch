@@ -593,17 +593,13 @@ def gen_per_operator_headers(
 
 def gen_source_files(
         *,
-        native_functions: Sequence[NativeFunction],
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
-        structured_native_functions: Sequence[NativeFunctionsGroup],
         selector: SelectiveBuilder,
         backend_indices: Dict[DispatchKey, BackendIndex],
-        core_fm: FileManager,
         cpu_fm: FileManager,
         dispatch_keys: Sequence[DispatchKey],
         functions_keys: Set[DispatchKey],
         rocm: bool,
-        force_schema_registration: bool,
         per_operator_headers: bool,
         skip_dispatcher_op_registration: bool,
 ) -> None:
@@ -745,7 +741,6 @@ def gen_headers(
         *,
         native_functions: Sequence[NativeFunction],
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
-        structured_native_functions: Sequence[NativeFunctionsGroup],
         static_dispatch_idx: Optional[BackendIndex],
         selector: SelectiveBuilder,
         backend_indices: Dict[DispatchKey, BackendIndex],
@@ -902,7 +897,6 @@ def main() -> None:
         gen_headers(
             native_functions=native_functions,
             grouped_native_functions=grouped_native_functions,
-            structured_native_functions=structured_native_functions,
             static_dispatch_idx=static_dispatch_idx,
             selector=selector,
             backend_indices=backend_indices,
@@ -917,17 +911,13 @@ def main() -> None:
 
     if 'sources' in options.generate:
         gen_source_files(
-            native_functions=native_functions,
             grouped_native_functions=grouped_native_functions,
-            structured_native_functions=structured_native_functions,
             selector=selector,
             backend_indices=backend_indices,
-            core_fm=core_fm,
             cpu_fm=cpu_fm,
             dispatch_keys=dispatch_keys,
             functions_keys=functions_keys,
             rocm=options.rocm,
-            force_schema_registration=options.force_schema_registration,
             per_operator_headers=options.per_operator_headers,
             skip_dispatcher_op_registration=options.skip_dispatcher_op_registration,
         )
