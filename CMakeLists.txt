@@ -97,6 +97,8 @@ install(TARGETS executorch
 install(FILES ${CMAKE_BINARY_DIR}/executorch.pc
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
+add_subdirectory(${EXECUTORCH_SOURCE_DIR}/pytree)
+
 add_subdirectory(${EXECUTORCH_SOURCE_DIR}/test ${CMAKE_BINARY_DIR}/test)
 
 add_subdirectory(${EXECUTORCH_SOURCE_DIR}/googletest)
