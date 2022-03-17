@@ -10,8 +10,13 @@ void error_with_message(const char* message) {
   // A hacky error function before we have a good convention,
   // better without exception.
   printf("%s\n", message);
+#if defined(__linux__) || defined(__APPLE__)
   throw std::runtime_error(message);
-  // exit(1); // this line doesnt actually cause tests to fail so switched to the above for now.
+#else
+  // Exception handling is disabled on embedded targets so we use this workaround
+  // for now until error handling is improved.
+  exit(1);
+#endif
 }
 } // namespace executor
 } // namespace torch

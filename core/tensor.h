@@ -72,7 +72,7 @@ class Tensor {
     void* data = nullptr;
 
     Tensor() {}
-    Tensor(ScalarType type, int dim, int* sizes, void* data=nullptr, int* strides = nullptr, int storage_offset = 0)
+    Tensor(ScalarType type, int32_t dim, int32_t* sizes, void* data=nullptr, int32_t* strides = nullptr, int32_t storage_offset = 0)
     : dim_(dim), sizes_(sizes, dim), type_(type), data(data), strides_(strides), storage_offset_(storage_offset)
     {
       if (!data) {
@@ -86,15 +86,15 @@ class Tensor {
       return nbytes_;
     }
 
-    int size(int dim) const {
+    int32_t size(int32_t dim) const {
       return sizes_[dim];
     }
 
-    int dim() const {
+    int32_t dim() const {
       return dim_;
     }
 
-    int numel() const {
+    int32_t numel() const {
       return numel_;
     }
 
@@ -103,31 +103,31 @@ class Tensor {
     }
 
     // Return the size of one element of the tensor
-    int element_size() const{
+    int32_t element_size() const{
       return scalarTypeItemSizes[static_cast<int>(type_)];
     }
 
-    int storage_offset() const {
+    int32_t storage_offset() const {
       return storage_offset_;
     }
 
-    ArrayRef<int> sizes() {
+    ArrayRef<int32_t> sizes() {
       return sizes_;
     }
 
-    const ArrayRef<int> sizes() const {
+    const ArrayRef<int32_t> sizes() const {
       return sizes_;
     }
 
   private:
 
     ScalarType type_;
-    int dim_ = 0;
-    int nbytes_ = 0;
-    int storage_offset_ = 0;
-    ArrayRef<int> sizes_;
-    int* strides_ = nullptr;
-    int numel_ = 0;
+    int32_t dim_ = 0;
+    int32_t nbytes_ = 0;
+    int32_t storage_offset_ = 0;
+    ArrayRef<int32_t> sizes_;
+    int32_t* strides_ = nullptr;
+    int32_t numel_ = 0;
 
     /**
     * Compute the number of elements based on the sizes of a tensor.
