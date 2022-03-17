@@ -2,7 +2,15 @@ include(ExternalProject)
 
 cmake_minimum_required(VERSION 3.14)
 #set(CMAKE_VERBOSE_MAKEFILE 1)
-include(codegen/Codegen.cmake)
+
+set(EXECUTORCH_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+
+if("${TARGET_PLATFORM}" STREQUAL "ethos")
+    set(TARGET_CPU "cortex-m55" CACHE STRING "Target CPU")
+    set(CMAKE_TOOLCHAIN_FILE
+        ${EXECUTORCH_SOURCE_DIR}/toolchains/arm-none-eabi-gcc.cmake)
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to Release, for debug builds use"
     "'-DCMAKE_BUILD_TYPE=Debug'.")
@@ -18,12 +26,12 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(EXECUTORCH_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
-
 # Executorch project
 project(Executorch
     DESCRIPTION "Simple and portable executor of PyTorch programs"
     VERSION 1.0.1)
+
+include(codegen/Codegen.cmake)
 
 # Check submodule
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/flatbuffers/CMakeLists.txt" OR NOT EXISTS "${PROJECT_SOURCE_DIR}/googletest/CMakeLists.txt")
@@ -75,8 +83,6 @@ add_library(executorch SHARED
     ${EXECUTORCH_SOURCE_DIR}/core/operator_registry.cpp
     ${EXECUTORCH_SOURCE_DIR}/kernels/demo_operator_kernels.cpp
 )
-
-add_dependencies(executorch schema_header)
 
 if(APPLE)
   set(link_flag_1 "-Wl,-all_load")
