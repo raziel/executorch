@@ -168,6 +168,9 @@ table Program {
   // The alignment accommodates mmap-friendly data structures.
   // By default this buffer is in mem_id 0
   constant_buffer:[ubyte] (force_align: 16);
+
+  // Output type meta data
+  output_meta_type: OutputContainerMetadata;
 }
 
 root_type Program;
