@@ -5,6 +5,7 @@
 #include <core/Scalar.h>
 #include <core/instruction.h>
 #include <core/operator_registry.h>
+#include <pytree/pytree.h>
 #include <schema_generated.h>
 #include <unordered_map>
 #include <executor.h>
@@ -461,5 +462,33 @@ TEST(ExecutorTest, toString) {
 
 
 }
+
+TEST(PyTreeEValue, List) {
+  pytree::Inflator inf("L2#1#1($,$)");
+
+  Scalar i((int64_t)2);
+  Scalar d((double)3.0);
+  EValue items[2] = {i, d};
+
+  auto c = inf.unflatten(items);
+  ASSERT_TRUE(c.isList());
+  ASSERT_EQ(c.size(), 2);
+
+  const auto &child0 = c[0];
+  const auto &child1 = c[1];
+
+  ASSERT_TRUE(child0.isLeaf());
+  ASSERT_TRUE(child1.isLeaf());
+
+  EValue ev_child0 = child0;
+  ASSERT_TRUE(ev_child0.isScalar());
+  ASSERT_TRUE(ev_child0.isInt());
+  ASSERT_EQ(ev_child0.toInt(), 2);
+
+  ASSERT_TRUE(child1.leaf().isScalar());
+  ASSERT_TRUE(child1.leaf().isDouble());
+  ASSERT_NEAR(child1.leaf().toDouble(), 3.0, 0.01);
+}
+
 } // namespace executor
 } // namespace torch

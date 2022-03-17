@@ -16,7 +16,7 @@ target_link_libraries(
 # TODO temporary until we can delete the old gtest polyfills.
 target_compile_definitions(test_executor PRIVATE USE_GTEST)
 
-set(EXECUTOR_TEST_DEPENDENCIES gtest executorch)
+set(EXECUTOR_TEST_DEPENDENCIES gtest executorch pytree)
 
 target_link_libraries(test_executor PRIVATE ${EXECUTOR_TEST_DEPENDENCIES})
 #target_include_directories(test_executor PRIVATE ${ATen_CPU_INCLUDE})
