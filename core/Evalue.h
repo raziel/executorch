@@ -247,7 +247,7 @@ struct EValue {
 
 template <>
 inline Tensor EValue::to<Tensor>() const& {
-  return *(std::move(*this).toTensor());
+  return *(this->toTensor());
 }
 DEFINE_TO(Scalar, toScalar)
 } // namespace executor
