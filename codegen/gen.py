@@ -11,7 +11,7 @@ from collections import namedtuple, defaultdict
 from codegen.api import unboxing
 from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup
 from codegen.api.unboxing import convert_arguments
-from codegen.context import method_with_native_function, native_function_manager
+from codegen.context import method_with_native_function
 from codegen.model import NativeFunction, DispatchKey, OperatorName, BackendMetadata, Location, BackendIndex, \
     is_cuda_dispatch_key, BaseOperatorName, Tag, NativeFunctionsGroup, Variant, SchemaKind, FunctionSchema, \
     is_generic_dispatch_key
@@ -593,31 +593,16 @@ def gen_per_operator_headers(
 
 def gen_source_files(
         *,
-        native_functions: Sequence[NativeFunction],
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
-        structured_native_functions: Sequence[NativeFunctionsGroup],
         selector: SelectiveBuilder,
         backend_indices: Dict[DispatchKey, BackendIndex],
-        core_fm: FileManager,
         cpu_fm: FileManager,
         dispatch_keys: Sequence[DispatchKey],
         functions_keys: Set[DispatchKey],
         rocm: bool,
-        force_schema_registration: bool,
         per_operator_headers: bool,
         skip_dispatcher_op_registration: bool,
 ) -> None:
-    extra_cuda_headers = '''\
-#include <c10/cuda/CUDAGuard.h>
-#include <ATen/cuda/ATenCUDAGeneral.h>
-#include <ATen/cuda/CUDADevice.h>
-#include <ATen/cuda/CUDAContext.h>'''
-    if rocm:
-        extra_cuda_headers = '''\
-#include <ATen/hip/impl/HIPGuardImplMasqueradingAsCUDA.h>
-#include <ATen/hip/ATenHIPGeneral.h>
-#include <ATen/hip/HIPDevice.h>
-#include <ATen/hip/HIPContext.h>'''
 
     for dispatch_key in dispatch_keys:
         fm = cpu_fm
@@ -699,8 +684,6 @@ def gen_source_files(
             )),
         })
 
-    core_fm.write('TensorMethods.cpp', lambda: {})
-
 
 def get_custom_build_selector(
         provided_op_registration_allowlist: Optional[List[str]],
@@ -758,7 +741,6 @@ def gen_headers(
         *,
         native_functions: Sequence[NativeFunction],
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
-        structured_native_functions: Sequence[NativeFunctionsGroup],
         static_dispatch_idx: Optional[BackendIndex],
         selector: SelectiveBuilder,
         backend_indices: Dict[DispatchKey, BackendIndex],
@@ -785,21 +767,6 @@ def gen_headers(
         )
     else:
         raise "Not supported"
-
-    def static_dispatch_method_headers() -> List[str]:
-        return list(mapMaybe(
-            lambda fn: static_dispatch_ops_header(fn, backend_index=static_dispatch_idx),
-            [fn for fn in native_functions if Variant.method in fn.variants]))
-
-    core_fm.write('TensorBody.h', lambda: {
-        'static_dispatch_ops_headers': (
-            static_dispatch_method_headers() if per_operator_headers
-            else static_dispatch_extra_headers(static_dispatch_idx, skip_tensor_include=True)),
-        'tensor_method_declarations': list(mapMaybe(ComputeTensorMethod(
-            target=Target.DECLARATION, static_dispatch_backend_index=static_dispatch_idx), native_functions)),
-        'tensor_method_definitions': list(mapMaybe(ComputeTensorMethod(
-            target=Target.DEFINITION, static_dispatch_backend_index=static_dispatch_idx), native_functions)),
-    })
 
     def gen_aten_interned_strings() -> Dict[str, str]:
         attrs = set()  # All function argument names
@@ -930,7 +897,6 @@ def main() -> None:
         gen_headers(
             native_functions=native_functions,
             grouped_native_functions=grouped_native_functions,
-            structured_native_functions=structured_native_functions,
             static_dispatch_idx=static_dispatch_idx,
             selector=selector,
             backend_indices=backend_indices,
@@ -945,17 +911,13 @@ def main() -> None:
 
     if 'sources' in options.generate:
         gen_source_files(
-            native_functions=native_functions,
             grouped_native_functions=grouped_native_functions,
-            structured_native_functions=structured_native_functions,
             selector=selector,
             backend_indices=backend_indices,
-            core_fm=core_fm,
             cpu_fm=cpu_fm,
             dispatch_keys=dispatch_keys,
             functions_keys=functions_keys,
             rocm=options.rocm,
-            force_schema_registration=options.force_schema_registration,
             per_operator_headers=options.per_operator_headers,
             skip_dispatcher_op_registration=options.skip_dispatcher_op_registration,
         )
