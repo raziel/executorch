@@ -11,7 +11,7 @@ from collections import namedtuple, defaultdict
 from codegen.api import unboxing
 from codegen.api.types import DispatcherSignature, CppSignature, CppSignatureGroup
 from codegen.api.unboxing import convert_arguments
-from codegen.context import method_with_native_function, native_function_manager
+from codegen.context import method_with_native_function
 from codegen.model import NativeFunction, DispatchKey, OperatorName, BackendMetadata, Location, BackendIndex, \
     is_cuda_dispatch_key, BaseOperatorName, Tag, NativeFunctionsGroup, Variant, SchemaKind, FunctionSchema, \
     is_generic_dispatch_key
@@ -607,17 +607,6 @@ def gen_source_files(
         per_operator_headers: bool,
         skip_dispatcher_op_registration: bool,
 ) -> None:
-    extra_cuda_headers = '''\
-#include <c10/cuda/CUDAGuard.h>
-#include <ATen/cuda/ATenCUDAGeneral.h>
-#include <ATen/cuda/CUDADevice.h>
-#include <ATen/cuda/CUDAContext.h>'''
-    if rocm:
-        extra_cuda_headers = '''\
-#include <ATen/hip/impl/HIPGuardImplMasqueradingAsCUDA.h>
-#include <ATen/hip/ATenHIPGeneral.h>
-#include <ATen/hip/HIPDevice.h>
-#include <ATen/hip/HIPContext.h>'''
 
     for dispatch_key in dispatch_keys:
         fm = cpu_fm
@@ -698,8 +687,6 @@ def gen_source_files(
                 grouped_native_functions
             )),
         })
-
-    core_fm.write('TensorMethods.cpp', lambda: {})
 
 
 def get_custom_build_selector(
@@ -785,21 +772,6 @@ def gen_headers(
         )
     else:
         raise "Not supported"
-
-    def static_dispatch_method_headers() -> List[str]:
-        return list(mapMaybe(
-            lambda fn: static_dispatch_ops_header(fn, backend_index=static_dispatch_idx),
-            [fn for fn in native_functions if Variant.method in fn.variants]))
-
-    core_fm.write('TensorBody.h', lambda: {
-        'static_dispatch_ops_headers': (
-            static_dispatch_method_headers() if per_operator_headers
-            else static_dispatch_extra_headers(static_dispatch_idx, skip_tensor_include=True)),
-        'tensor_method_declarations': list(mapMaybe(ComputeTensorMethod(
-            target=Target.DECLARATION, static_dispatch_backend_index=static_dispatch_idx), native_functions)),
-        'tensor_method_definitions': list(mapMaybe(ComputeTensorMethod(
-            target=Target.DEFINITION, static_dispatch_backend_index=static_dispatch_idx), native_functions)),
-    })
 
     def gen_aten_interned_strings() -> Dict[str, str]:
         attrs = set()  # All function argument names
