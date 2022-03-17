@@ -1364,7 +1364,8 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VERSION = 4,
     VT_EXECUTION_PLAN = 6,
-    VT_CONSTANT_BUFFER = 8
+    VT_CONSTANT_BUFFER = 8,
+    VT_OUTPUT_META_TYPE = 10
   };
   uint32_t version() const {
     return GetField<uint32_t>(VT_VERSION, 0);
@@ -1384,6 +1385,12 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::Vector<uint8_t> *mutable_constant_buffer() {
     return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_CONSTANT_BUFFER);
   }
+  const executorch::OutputContainerMetadata *output_meta_type() const {
+    return GetPointer<const executorch::OutputContainerMetadata *>(VT_OUTPUT_META_TYPE);
+  }
+  executorch::OutputContainerMetadata *mutable_output_meta_type() {
+    return GetPointer<executorch::OutputContainerMetadata *>(VT_OUTPUT_META_TYPE);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_VERSION, 4) &&
@@ -1392,6 +1399,8 @@ struct Program FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(execution_plan()) &&
            VerifyOffset(verifier, VT_CONSTANT_BUFFER) &&
            verifier.VerifyVector(constant_buffer()) &&
+           VerifyOffset(verifier, VT_OUTPUT_META_TYPE) &&
+           verifier.VerifyTable(output_meta_type()) &&
            verifier.EndTable();
   }
 };
@@ -1409,6 +1418,9 @@ struct ProgramBuilder {
   void add_constant_buffer(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> constant_buffer) {
     fbb_.AddOffset(Program::VT_CONSTANT_BUFFER, constant_buffer);
   }
+  void add_output_meta_type(flatbuffers::Offset<executorch::OutputContainerMetadata> output_meta_type) {
+    fbb_.AddOffset(Program::VT_OUTPUT_META_TYPE, output_meta_type);
+  }
   explicit ProgramBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1424,8 +1436,10 @@ inline flatbuffers::Offset<Program> CreateProgram(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t version = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<executorch::ExecutionPlan>>> execution_plan = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> constant_buffer = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> constant_buffer = 0,
+    flatbuffers::Offset<executorch::OutputContainerMetadata> output_meta_type = 0) {
   ProgramBuilder builder_(_fbb);
+  builder_.add_output_meta_type(output_meta_type);
   builder_.add_constant_buffer(constant_buffer);
   builder_.add_execution_plan(execution_plan);
   builder_.add_version(version);
@@ -1436,7 +1450,8 @@ inline flatbuffers::Offset<Program> CreateProgramDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t version = 0,
     const std::vector<flatbuffers::Offset<executorch::ExecutionPlan>> *execution_plan = nullptr,
-    const std::vector<uint8_t> *constant_buffer = nullptr) {
+    const std::vector<uint8_t> *constant_buffer = nullptr,
+    flatbuffers::Offset<executorch::OutputContainerMetadata> output_meta_type = 0) {
   auto execution_plan__ = execution_plan ? _fbb.CreateVector<flatbuffers::Offset<executorch::ExecutionPlan>>(*execution_plan) : 0;
   if (constant_buffer) { _fbb.ForceVectorAlignment(constant_buffer->size(), sizeof(uint8_t), 16); }
   auto constant_buffer__ = constant_buffer ? _fbb.CreateVector<uint8_t>(*constant_buffer) : 0;
@@ -1444,7 +1459,8 @@ inline flatbuffers::Offset<Program> CreateProgramDirect(
       _fbb,
       version,
       execution_plan__,
-      constant_buffer__);
+      constant_buffer__,
+      output_meta_type);
 }
 
 inline bool VerifyValueUnion(flatbuffers::Verifier &verifier, const void *obj, ValueUnion type) {
