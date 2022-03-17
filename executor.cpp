@@ -58,7 +58,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       Tensor *t = new Tensor(
           static_cast<ScalarType>(s_tensor->scalar_type()),
           s_tensor->sizes()->size(),
-          const_cast<int *>(
+          const_cast<int32_t *>(
               s_tensor->sizes()->data()),
           nullptr,
           nullptr,
@@ -84,7 +84,7 @@ int ExecutionPlan::init(executorch::ExecutionPlan* s_plan) {
       for (auto s_tensor = s_tensor_list->begin(); s_tensor != s_tensor_list->end(); s_tensor_list++)  {
         executor_tensors.emplace_back(static_cast<ScalarType>(s_tensor->scalar_type()),
           s_tensor->sizes()->size(),
-          const_cast<int *>(
+          const_cast<int32_t *>(
               s_tensor->sizes()->data()),
           nullptr,
           nullptr,
