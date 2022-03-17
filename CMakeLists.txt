@@ -1,3 +1,5 @@
+include(ExternalProject)
+
 cmake_minimum_required(VERSION 3.14)
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 include(codegen/Codegen.cmake)
@@ -38,16 +40,31 @@ target_link_libraries(
   flatbuffers
 )
 
+set(FLATC_BUILD_DIR ${EXECUTORCH_SOURCE_DIR}/flatbuffers/build)
+
+# To build the flatc target we add flatbuffers as an external project and
+# then use that target later in generating the schema. This is to ensure
+# that while cross-compiling we still build flatc with the host toolchain
+# and not the target toolchain.
+ExternalProject_Add(
+  flatc_build
+  SOURCE_DIR ${EXECUTORCH_SOURCE_DIR}/flatbuffers
+  BINARY_DIR ${FLATC_BUILD_DIR}
+  CMAKE_ARGS
+  INSTALL_COMMAND ""
+)
+
 # Generate schema.
 
 add_custom_command(
   OUTPUT schema_generated.h
-  COMMAND flatc --cpp --gen-mutable --scoped-enums "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
+  COMMAND ${FLATC_BUILD_DIR}/flatc --cpp --gen-mutable --scoped-enums "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   DEPENDS "${EXECUTORCH_SOURCE_DIR}/schema/schema.fbs"
   WORKING_DIRECTORY "${EXECUTORCH_SOURCE_DIR}/schema"
 )
+
 add_custom_target(schema_header ALL
-  DEPENDS schema_generated.h
+  DEPENDS flatc_build schema_generated.h
 )
 
 # Create library
