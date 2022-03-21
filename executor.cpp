@@ -1,7 +1,7 @@
 #include "executor.h"
 #include <core/instruction.h>
 #include <vector> // used for Tensor List initialization to make it simple, can be replaced when memory is more planned out
-#include <iostream>
+
 namespace torch {
 namespace executor {
 
