@@ -1,7 +1,7 @@
 #include "executor.h"
 #include <core/instruction.h>
 #include <vector> // used for Tensor List initialization to make it simple, can be replaced when memory is more planned out
-
+#include <iostream>
 namespace torch {
 namespace executor {
 
@@ -169,6 +169,36 @@ int ExecutionPlan::execute() const {
     }
   }
   return 0;
+}
+
+std::string ExecutionPlan::toString() const {
+  std::stringstream result;
+  for (int i = 0; i < n_chains_; i++) {
+    result << "Chain " << i << ": {";
+    Chain* chain = &chains_[i];
+    // instruction loop
+    for (int j = 0; j < chain->s_chain_->instructions()->size(); j++) {
+      auto instruction = chain->s_chain_->instructions()->Get(j);
+      switch (instruction->op()) {
+      case CALL_KERNEL: {
+        Kernel* kernel = &chain->kernels_[instruction->x()];
+        // TODO add arg index numbers
+        result << serialization_plan_->operators()->Get(kernel->op_index_)->name()->str();
+        if (j < chain->s_chain_->instructions()->size() - 1) {
+          result << " -> ";
+        } else {
+          result << "}";
+        }
+      } break;
+      default:
+        error_with_message("Instruction is not supported.");
+      }
+    }
+    if (i < n_chains_ - 1) {
+          result << " -> ";
+    }
+  }
+  return result.str();
 }
 } // namespace executor
 } // namespace torch

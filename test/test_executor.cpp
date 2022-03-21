@@ -441,5 +441,25 @@ TEST(ExecutorTest, OpRegistrationAddMul) {
 ASSERT_TRUE(hasOpsFn("add_out"));
 ASSERT_TRUE(hasOpsFn("mul_out"));
 }
+
+TEST(ExecutorTest, toString) {
+  uint8_t* base_addresses[NUM_MEMORY_POOLS];
+  int pool_sizes[NUM_MEMORY_POOLS]{0, };
+  base_addresses[0] = nullptr; // reserved for constant pool
+  base_addresses[1] = activation_pool;
+  BaseMemManager mem_manager(NUM_MEMORY_POOLS, pool_sizes, base_addresses);
+
+  flatbuffers::FlatBufferBuilder fbb;
+  Serializer serializer;
+  auto buff = serializer.serializeModule(fbb);
+  auto program = executorch::GetProgram(buff.data());
+  Executor executor(program, &mem_manager);
+  executor.init_execution_plan(0);
+
+  const auto& plan = executor.executionPlan();
+  EXPECT_EQ(plan.toString(), "Chain 0: {mul_out -> add_out}");
+
+
+}
 } // namespace executor
 } // namespace torch

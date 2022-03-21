@@ -42,6 +42,8 @@ struct ExecutionPlan {
       : program_(program), mem_manager_(mem_manager) {}
   int init(executorch::ExecutionPlan* s_plan);
   int execute() const;
+  std::string toString() const;
+
   const executorch::Program* program_;
   BaseMemManager* mem_manager_;
   executorch::ExecutionPlan* serialization_plan_;
